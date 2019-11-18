@@ -15,10 +15,9 @@ class Proxy():
         # connect to websocket server
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect(('127.0.0.1', 5005))
-        
 
-    def package(self, package):
-        return lambda *args, **kwargs: self.run(package, *args, **kwargs)
+    def package(self, package, cache=False):
+        return lambda *args, **kwargs: self.run(package, cache, *args, **kwargs)
 
     def recvall(self):
         BUFF_SIZE = 4096  # 4 KiB
@@ -31,32 +30,27 @@ class Proxy():
                 break
         return data
 
-
-    def run(self, package, *args, **kwargs):
-
-
-        # encode args and send to rpc
-        idict = {'package': package, 'args': args, 'kwargs': kwargs}
-        istring = json.dumps(idict, cls=DataEncoder)
-
-        # print('sending: ', istring)
-        print('sending')
-
+    def send(self, data):
+        """encode given data and send to remote and parse returned result"""
+        istring = json.dumps(data, cls=DataEncoder)
         self.socket.send(istring.encode())
         result = self.recvall()
-        # decode returned result from rpc
         return json.loads(result.decode(), cls=DataDecoder)
 
+    def run(self, package, cache, *args, **kwargs):
+        """proxy to run the package function"""
+        idict = {'package': package, 'cache': cache, 'args': args, 'kwargs': kwargs}
+        return self.send(idict)
+
+    def get(self, cached_object):
+        """get content of a cached object stored remotely"""
+        idict = {'get': cached_object['cached']}
+        return self.send(idict)
+
+    def cache(self, data):
+        """cache the give data and return a reference of it"""
+        idict = {'cache': data}
+        return self.send(idict)
 
 if __name__ == "__main__":
-
-    from compas.geometry import Translation
-
-    T = Translation([100, 0, 0]).matrix
-
-    p = Proxy()
-    transform_points_numpy = p.package('compas.geometry.transform_points_numpy')
-
-    r = transform_points_numpy([[0, 0, 0]], T)
-
-    print(r)
+    pass

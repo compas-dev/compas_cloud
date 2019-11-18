@@ -2,36 +2,45 @@ from compas.geometry import Translation
 from compas.geometry import transform_points
 import time
 
-import compas_cloud
-proxy = compas_cloud.Proxy()
-transform_points_numpy = proxy.package('compas.geometry.transform_points_numpy')
+
+# # USING NATIVE PYTHON
 
 
-
-pts = []
-for i in range(0, 1000):
-    pts.append([i, 0, 0])
-
+pts = [[i, 0, 0] for i in range(0, 10000)]
 T = Translation([100, 0, 0]).matrix
 
+start = time.time()
 
-# USING NATIVE PYTHON
+for i in range(0, 100):
+    pts = transform_points(pts, T)
+
+result1 = pts
+
+end = time.time()
+print('transform 10k points 100 times (native python): ', end - start, 's')
+
+
+
+# USING CLOUD WITH CACHE
+
+import compas_cloud
+proxy = compas_cloud.Proxy()
+transform_points_numpy = proxy.package('compas.geometry.transform_points_numpy', cache=True)
+
+
+pts = [[i, 0, 0] for i in range(0, 10000)]
+T = Translation([100, 0, 0]).matrix
 
 start = time.time()
 
-transformed = transform_points(pts, T)
+pts = proxy.cache(pts)
+
+for i in range(0, 100):
+    pts = transform_points_numpy(pts, T)
+
+result2 = proxy.get(pts)
 
 end = time.time()
+print('transform 10k points 100 times (cloud numpy): ', end - start, 's')
 
-print('transform 1 million points(native python): ', end - start, 's')
-
-
-
-
-# USING CLOUD WITH NUMPY
-
-start = time.time()
-transformed = transform_points_numpy(pts, T)
-end = time.time()
-
-print('transform 1 million points(cloud numpy): ', end - start, 's')
+assert result1 == result2
