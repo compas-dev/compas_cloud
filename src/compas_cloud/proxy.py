@@ -30,29 +30,27 @@ class Proxy():
                 break
         return data
 
+    def send(self, data):
+        """encode given data and send to remote and parse returned result"""
+        istring = json.dumps(data, cls=DataEncoder)
+        self.socket.send(istring.encode())
+        result = self.recvall()
+        return json.loads(result.decode(), cls=DataDecoder)
 
     def run(self, package, cache, *args, **kwargs):
-
-        # encode args and send to rpc
+        """proxy to run the package function"""
         idict = {'package': package, 'cache': cache, 'args': args, 'kwargs': kwargs}
-        istring = json.dumps(idict, cls=DataEncoder)
+        return self.send(idict)
 
-        self.socket.send(istring.encode())
-        result = self.recvall()
-        # decode returned result from rpc
-        return json.loads(result.decode(), cls=DataDecoder)
+    def get(self, cached_object):
+        """get content of a cached object stored remotely"""
+        idict = {'get': cached_object['cached']}
+        return self.send(idict)
 
-    def get(self, obj):
-
-        # encode args and send to rpc
-        idict = {'get': obj['cached']}
-        istring = json.dumps(idict, cls=DataEncoder)
-
-        self.socket.send(istring.encode())
-        result = self.recvall()
-        # decode returned result from rpc
-        return json.loads(result.decode(), cls=DataDecoder)
-
+    def cache(self, data):
+        """cache the give data and return a reference of it"""
+        idict = {'cache': data}
+        return self.send(idict)
 
 if __name__ == "__main__":
     pass

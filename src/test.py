@@ -3,23 +3,18 @@ from compas.geometry import transform_points
 import time
 
 
-pts = []
-for i in range(0, 10000):
-    pts.append([i, 0, 0])
-
-T = Translation([100, 0, 0]).matrix
-
-
-
 # # USING NATIVE PYTHON
 
+
+pts = [[i, 0, 0] for i in range(0, 10000)]
+T = Translation([100, 0, 0]).matrix
+
 start = time.time()
-transformed = transform_points(pts, T)
 
 for i in range(0, 100):
-    transformed = transform_points(transformed, T)
+    pts = transform_points(pts, T)
 
-t1 = transformed
+result1 = pts
 
 end = time.time()
 print('transform 10k points 100 times (native python): ', end - start, 's')
@@ -32,15 +27,20 @@ import compas_cloud
 proxy = compas_cloud.Proxy()
 transform_points_numpy = proxy.package('compas.geometry.transform_points_numpy', cache=True)
 
+
+pts = [[i, 0, 0] for i in range(0, 10000)]
+T = Translation([100, 0, 0]).matrix
+
 start = time.time()
-transformed = transform_points_numpy(pts, T)
+
+pts = proxy.cache(pts)
 
 for i in range(0, 100):
-    transformed = transform_points_numpy(transformed, T)
+    pts = transform_points_numpy(pts, T)
 
-t2 = proxy.get(transformed)
+result2 = proxy.get(pts)
 
 end = time.time()
 print('transform 10k points 100 times (cloud numpy): ', end - start, 's')
 
-assert t1 == t2
+assert result1 == result2
