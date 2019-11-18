@@ -8,13 +8,16 @@ import compas
 
 import time
 
+from .remote import Remote
 
 class Proxy():
 
     def __init__(self):
-        # connect to websocket server
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.connect(('127.0.0.1', 5005))
+
+
+        self.remote = Remote()
+        self.socket = self.remote._server
+        print('connected to server!')
 
     def package(self, package, cache=False):
         return lambda *args, **kwargs: self.run(package, cache, *args, **kwargs)
