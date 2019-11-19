@@ -8,20 +8,11 @@ import json
 import compas
 import socket
 
-try:
-    from subprocess import Popen
-    from subprocess import PIPE
+from subprocess import Popen
+from subprocess import PIPE
 
-except ImportError:
-    try:
-        from System.Diagnostics import Process
-    except ImportError:
-        compas.raise_if_ironpython()
 
 import compas._os
-
-from compas.utilities import DataEncoder
-
 from compas.rpc import RPCServerError
 
 __all__ = ['Remote']
@@ -31,7 +22,7 @@ class Remote(object):
     """a remote controller than open and close a subprocess that runs a server"""
 
 
-    def __init__(self, package=None, python=None, url='http://127.0.0.1', port=5005, service=None):
+    def __init__(self, package=None, python=None, url='http://127.0.0.1', port=5005, service='compas_cloud.server'):
         self._package = None
         self._python = compas._os.select_python(python)
         self._url = url
@@ -103,47 +94,12 @@ class Remote(object):
         """
         env = compas._os.prepare_environment()
 
-        # this part starts the server side of the RPC setup
-        # it basically launches a subprocess
-        # to start the default service
-        # the default service creates a server
-        # and registers a dispatcher for custom functionality
-        try:
-            Popen
-        except NameError:
+        args = [self._python, '-m', self.service, str(self._port)]
+        self._process = Popen(args, stdout=PIPE, stderr=PIPE, env=env)
 
-            print('using Process')
-            self._process = Process()
+        # import sys
+        # self._process = Popen(args, stdout=sys.stdout, stderr=sys.stderr, env=env)
 
-            for name in env:
-                if self._process.StartInfo.EnvironmentVariables.ContainsKey(name):
-                    self._process.StartInfo.EnvironmentVariables[name] = env[name]
-                else:
-                    self._process.StartInfo.EnvironmentVariables.Add(name, env[name])
-
-            self._process.StartInfo.UseShellExecute = False
-            self._process.StartInfo.RedirectStandardOutput = True
-            self._process.StartInfo.RedirectStandardError = True
-            self._process.StartInfo.FileName = self.python
-            # self._process.StartInfo.Arguments = '-m {0} {1}'.format(self.service, str(self._port))
-            self._process.StartInfo.Arguments = 'server.py'
-            self._process.Start()
-        else:
-
-            print('using Popen')
-            # args = [self.python, '-m', self.service, str(self._port)]
-            # self._process = Popen(args, stdout=PIPE, stderr=PIPE, env=env)
-            import sys
-            args = ['/Users/lichen7/anaconda3/envs/compas-dev/bin/python', 'src/compas_cloud/server.py']
-            # self._process = Popen(args, stdout=sys.stdout, stderr=sys.stderr, env=env)
-            self._process = Popen(args, stdout=PIPE, stderr=PIPE, env=env)
-
-
-
-        # this starts the client side
-        # it creates a proxy for the server
-        # and tries to connect the proxy to the actual server
-        # server = ServerProxy(self.address)
 
         print("Starting a new proxy server...")
 
@@ -151,10 +107,10 @@ class Remote(object):
         count = 100
         while count:
             try:
+                time.sleep(0.1)
                 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 server.connect(('127.0.0.1', 5005))
             except Exception:
-                time.sleep(0.1)
                 count -= 1
                 print("    {} attempts left.".format(count))
             else:
