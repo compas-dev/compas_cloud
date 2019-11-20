@@ -7,13 +7,14 @@ from compas.utilities import DataDecoder
 import compas
 
 import time
+import inspect
 
 from .remote import Remote
+
 
 class Proxy():
 
     def __init__(self):
-
 
         self.remote = Remote()
         self.socket = self.remote._server
@@ -42,7 +43,8 @@ class Proxy():
 
     def run(self, package, cache, *args, **kwargs):
         """proxy to run the package function"""
-        idict = {'package': package, 'cache': cache, 'args': args, 'kwargs': kwargs}
+        idict = {'package': package, 'cache': cache,
+                 'args': args, 'kwargs': kwargs}
         return self.send(idict)
 
     def get(self, cached_object):
@@ -52,7 +54,13 @@ class Proxy():
 
     def cache(self, data):
         """cache the give data and return a reference of it"""
-        idict = {'cache': data}
+        if callable(data):
+            idict = {'cache_func': {
+                'name': data.__name__,
+                'source': inspect.getsource(data)
+            }}
+        else:
+            idict = {'cache': data}
         return self.send(idict)
 
 if __name__ == "__main__":

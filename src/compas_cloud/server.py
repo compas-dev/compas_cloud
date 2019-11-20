@@ -76,11 +76,25 @@ class Session():
         self.cached[_id] = to_cache
         return {'cached': _id}
 
+    def cache_func(self, data):
+
+        print(data['cache_func'])
+
+        name = data['cache_func']['name']
+        exec(data['cache_func']['source'])
+        exec('self.cached[name] = {}'.format(name))
+        print(self.cached[name])
+        return {'cached_func': name}
+
+
     def process(self, data):
         data = json.loads(data, cls=DataDecoder)
 
         if 'cache' in data:
             result = self.cache(data)
+
+        if 'cache_func' in data:
+            result = self.cache_func(data)
 
         if 'package' in data:
             result = self.execute(data)
