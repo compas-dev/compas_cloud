@@ -4,7 +4,7 @@ import compas
 from compas.datastructures import Mesh
 from compas_plotters import MeshPlotter
 from compas.utilities import i_to_rgb
-from compas.numerical import dr_numpy
+# from compas.numerical import dr_numpy
 
 
 from compas_cloud import Proxy
@@ -73,8 +73,6 @@ plotter.draw_vertices(facecolor={key: '#000000' for key in mesh.vertices_where({
 plotter.draw_edges()
 
 plotter.update(pause=1.0)
-
-import numpy as np
 
 def callback(k, xyz, crits, args):
     print(k)
