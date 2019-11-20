@@ -38,16 +38,32 @@ class Session():
             result = self.process(data)
 
             # send back results
-            conn.sendall(result)
+            self.connection.sendall(result)
+
+    def callback(self, _id, *args, **kwargs):
+        data = {'callback': {'id': _id, 'args': args, 'kwargs': kwargs}}
+        istring = json.dumps(data, cls=DataEncoder)
+
+        import time
+        time.sleep(0.05)
+        self.connection.sendall(istring.encode())
+
 
     def load_cached(self, data):
         # load cached data
         for i, a in enumerate(data['args']):
-            if 'cached' in a:
-                data['args'][i] = self.cached[a['cached']]
+            if isinstance(a, dict):
+                if 'cached' in a:
+                    data['args'][i] = self.cached[a['cached']]
+
         for key in data['kwargs']:
-            if 'cached' in data['kwargs'][key]:
-                data['kwargs'][key] = self.cached[data['kwargs'][key]['cached']]
+            if isinstance(data['kwargs'][key], dict):
+                if 'cached' in data['kwargs'][key]:
+                    data['kwargs'][key] = self.cached[data['kwargs'][key]['cached']]
+                if 'callback' in data['kwargs'][key]:
+                    _id = data['kwargs'][key]['callback']['id']
+                    self.cached[_id] = lambda *args, **kwargs: self.callback(_id, *args, **kwargs)
+                    data['kwargs'][key] = self.cached[_id]
 
     def execute(self, data):
         package = data['package']
