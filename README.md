@@ -8,4 +8,4 @@ compas_cloud is the further development of `compas.rpc` module. It uses websockt
 
 
 ### install for Rhino
-`python compas_rhino.install -p compas_cloud`
+`python -m compas_rhino.install -p compas_cloud`
