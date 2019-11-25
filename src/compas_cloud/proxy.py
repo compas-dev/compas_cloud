@@ -46,7 +46,6 @@ class Proxy():
         while True:
             if isinstance(result, dict):
                 if 'callback' in result:
-                    # print(result['callback']['id'])
                     cb = result['callback']
                     self.callbacks[cb['id']](*cb['args'], **cb['kwargs'])
                     result = self.recvall().decode()
@@ -82,6 +81,7 @@ class Proxy():
         return self.send(idict)
 
     def parse_callbacks(self, args, kwargs):
+        "turn callback functions into a reference before sending to server"
         for i, a in enumerate(args):
             cb = a
             if callable(cb):
