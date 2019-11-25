@@ -4,12 +4,10 @@ import compas
 from compas.datastructures import Mesh
 from compas_plotters import MeshPlotter
 from compas.utilities import i_to_rgb
-# from compas.numerical import dr_numpy
-
-
+""" instead of `from compas.numerical import dr_numpy` use following code to import module"""
 from compas_cloud import Proxy
 p = Proxy()
-dr_cloud = p.package('compas.numerical.dr_numpy')
+dr_numpy = p.package('compas.numerical.dr_numpy')
 
 dva = {
     'is_fixed': False,
@@ -87,14 +85,8 @@ def callback(k, xyz, crits, args):
         attr['y'] = xyz[index][1]
         attr['z'] = xyz[index][2]
 
-# xyz, q, f, l, r = dr_numpy(vertices, edges, fixed, loads,
-#                             qpre, fpre, lpre,
-#                             linit, E, radius,
-#                             kmax=100, callback=callback)
 
-# print(xyz)
-
-xyz, q, f, l, r = dr_cloud(vertices, edges, fixed, loads,
+xyz, q, f, l, r = dr_numpy(vertices, edges, fixed, loads,
                             qpre, fpre, lpre,
                             linit, E, radius,
                             kmax=100, callback=callback)
