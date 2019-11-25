@@ -3,20 +3,21 @@ compas_cloud is the further development of `compas.rpc` module. It uses websockt
 
 
 
-### install from source
+### Install from source
 `pip install -e .`
 
 
-### install for Rhino
+### Install for Rhino
 `python -m compas_rhino.install -p compas_cloud`
 
 
-### run examples
+### Run examples
 a benchmark test comparing pure python and numpy with remote    
 `python examples/benchmark.py`
 
 iterative plotting example with callbacks    
 `python examples/dr_numpy.py`
 
-### start server from command line
-`python -m compas_cloud.server`
+### Start server from command line
+`python -m compas_cloud.server`  
+(The proxy will automatically start a server in background if there isn't one to connect to)
