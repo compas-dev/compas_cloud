@@ -24,7 +24,7 @@ class MyServerProtocol(WebSocketServerProtocol):
 
     def onMessage(self, payload, isBinary):
         result = self.process(payload)
-        self.sendMessage(result, isBinary)
+        self.sendMessage(result.encode(), isBinary)
 
     def callback(self, _id, *args, **kwargs):
         data = {'callback': {'id': _id, 'args': args, 'kwargs': kwargs}}

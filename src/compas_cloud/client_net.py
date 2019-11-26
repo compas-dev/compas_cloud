@@ -60,7 +60,7 @@ class Client():
         i = 0
 
         while True:
-            print('sending chunk', i)
+            # print('sending chunk', i)
             offset = SEND_CHUNK_SIZE * i
             is_last_message = (i == chunks_count - 1)
 
@@ -83,6 +83,7 @@ class Client():
 
         chunks = []
         while True:
+            # print('receive chunk')
             buffer = Array.CreateInstance(Byte, RECEIVE_CHUNK_SIZE)
             task = self.socket.ReceiveAsync(ArraySegment[Byte](buffer), self.token)
             task.Wait()

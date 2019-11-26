@@ -25,13 +25,10 @@ class Proxy_Net():
     def package(self, package, cache=False):
         return lambda *args, **kwargs: self.run(package, cache, *args, **kwargs)
 
-
     def send(self, data):
         """encode given data and send to remote and parse returned result"""
         istring = json.dumps(data, cls=DataEncoder)
         success = self.client.send(istring)
-
-        print( 'success ??????',success)
 
         result = self.client.receive()
         result = json.loads(result, cls=DataDecoder)
