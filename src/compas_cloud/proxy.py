@@ -1,4 +1,3 @@
-import socket
 import json
 
 from compas.utilities import DataEncoder
@@ -9,37 +8,35 @@ import compas
 import time
 import inspect
 
-from .remote import Remote
+from subprocess import Popen
+from subprocess import PIPE
 
+if compas.is_ironpython():
+    from .client_net import Client_Net as Client
+else:
+    from .client_websockets import Client_Websokets as Client
+
+__all__ = ['Proxy']
 
 class Proxy():
 
     def __init__(self):
 
-        self.remote = Remote()
-        self.socket = self.remote._server
+        self._python = compas._os.select_python(None)
+        self.client = self.try_reconnect()
+        if not self.client:
+            self.client = self.start_server()
         self.callbacks = {}
-        print('connected to server!')
 
     def package(self, package, cache=False):
         return lambda *args, **kwargs: self.run(package, cache, *args, **kwargs)
 
-    def recvall(self):
-        BUFF_SIZE = 4096  # 4 KiB
-        data = b''
-        while True:
-            part = self.socket.recv(BUFF_SIZE)
-            data += part
-            if len(part) < BUFF_SIZE:
-                # either 0 or end of data
-                break
-        return data
-
     def send(self, data):
         """encode given data and send to remote and parse returned result"""
         istring = json.dumps(data, cls=DataEncoder)
-        self.socket.send(istring.encode())
-        result = self.recvall().decode()
+        success = self.client.send(istring)
+
+        result = self.client.receive()
         result = json.loads(result, cls=DataDecoder)
 
         # keep receiving if it is a callback
@@ -48,7 +45,7 @@ class Proxy():
                 if 'callback' in result:
                     cb = result['callback']
                     self.callbacks[cb['id']](*cb['args'], **cb['kwargs'])
-                    result = self.recvall().decode()
+                    result = self.client.receive()
                     result = json.loads(result, cls=DataDecoder)
                 else:
                     break
@@ -93,6 +90,44 @@ class Proxy():
                 kwargs[key] = {'callback': {'id': id(cb)}}
                 self.callbacks[id(cb)] = cb
         return args, kwargs
+
+    def try_reconnect(self):
+        try:
+            client = Client()
+        except Exception:
+            return None
+        else:
+            print("Reconnected to an existing server.")
+        return client
+
+    def start_server(self):
+        env = compas._os.prepare_environment()
+
+        args = [self._python, '-m', 'compas_cloud.server']
+        self._process = Popen(args, stdout=PIPE, stderr=PIPE, env=env)
+        # import sys
+        # self._process = Popen(args, stdout=sys.stdout, stderr=sys.stderr, env=env)
+
+        print("Starting new cloud server in background")
+
+        success = False
+        count = 20
+        while count:
+            try:
+                time.sleep(0.2)
+                client = Client()
+            except Exception:
+                count -= 1
+                print("    {} attempts left.".format(count))
+            else:
+                success = True
+                break
+        if not success:
+            raise RuntimeError("The server is not available.")
+        else:
+            print("server started.")
+
+        return client
 
 if __name__ == "__main__":
     pass
