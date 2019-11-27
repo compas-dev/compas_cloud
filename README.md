@@ -19,7 +19,7 @@ iterative plotting example with callbacks
 `python examples/dr_numpy.py`
 
 using non-compas packages like numpy in ironpython  
-`run examples/numpy.py with Rhino`
+`run examples/example_numpy.py with Rhino`
 
 ### Start server from command line
 `python -m compas_cloud.server`  
