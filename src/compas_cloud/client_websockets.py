@@ -9,9 +9,9 @@ __all__ = ['Client_Websokets']
 
 class Client_Websokets():
 
-    def __init__(self):
+    def __init__(self, port=9000):
         async def connect():
-            uri = "ws://127.0.0.1:9000"
+            uri = "ws://127.0.0.1:" + str(port)
             self.websocket = await websockets.connect(uri)
         asyncio.get_event_loop().run_until_complete(connect())
         print('connected to cloud using websockets client!')

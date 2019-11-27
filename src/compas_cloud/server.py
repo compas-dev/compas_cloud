@@ -111,5 +111,8 @@ if __name__ == '__main__':
     factory = WebSocketServerFactory()
     factory.protocol = MyServerProtocol
 
-    reactor.listenTCP(9000, factory)
+    if len(sys.argv) > 1:
+        reactor.listenTCP(int(sys.argv[1]), factory)
+    else:
+        reactor.listenTCP(9000, factory)
     reactor.run()

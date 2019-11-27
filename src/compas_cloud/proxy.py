@@ -20,9 +20,10 @@ __all__ = ['Proxy']
 
 class Proxy():
 
-    def __init__(self):
+    def __init__(self, port=9000):
 
         self._python = compas._os.select_python(None)
+        self.port = port
         self.client = self.try_reconnect()
         if not self.client:
             self.client = self.start_server()
@@ -93,17 +94,17 @@ class Proxy():
 
     def try_reconnect(self):
         try:
-            client = Client()
+            client = Client(port=self.port)
         except Exception:
             return None
         else:
-            print("Reconnected to an existing server.")
+            print("Reconnected to an existing server at port", self.port)
         return client
 
     def start_server(self):
         env = compas._os.prepare_environment()
 
-        args = [self._python, '-m', 'compas_cloud.server']
+        args = [self._python, '-m', 'compas_cloud.server', str(self.port)]
         self._process = Popen(args, stdout=PIPE, stderr=PIPE, env=env)
         # import sys
         # self._process = Popen(args, stdout=sys.stdout, stderr=sys.stderr, env=env)
@@ -115,7 +116,7 @@ class Proxy():
         while count:
             try:
                 time.sleep(0.2)
-                client = Client()
+                client = Client(port=self.port)
             except Exception:
                 count -= 1
                 print("    {} attempts left.".format(count))
@@ -125,7 +126,7 @@ class Proxy():
         if not success:
             raise RuntimeError("The server is not available.")
         else:
-            print("server started.")
+            print("server started with port", self.port)
 
         return client
 
