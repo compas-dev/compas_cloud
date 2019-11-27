@@ -46,9 +46,9 @@ class MyServerProtocol(WebSocketServerProtocol):
     def execute(self, data):
         package = data['package']
         names = package.split('.')
-        name = '.'.join(names[:2])
+        name = '.'.join(names[:-1])
         module = importlib.import_module(name)
-        function = getattr(module, names[2])
+        function = getattr(module, names[-1])
 
         self.load_cached(data)
 
