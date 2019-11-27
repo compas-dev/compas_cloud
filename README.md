@@ -18,6 +18,9 @@ a benchmark test comparing pure python and numpy with remote
 iterative plotting example with callbacks    
 `python examples/dr_numpy.py`
 
+using non-compas packages like numpy in ironpython  
+`run examples/numpy.py with Rhino`
+
 ### Start server from command line
 `python -m compas_cloud.server`  
 (The proxy will automatically start a server in background if there isn't one to connect to)
