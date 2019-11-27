@@ -24,10 +24,10 @@ import time
 SEND_CHUNK_SIZE = 1024
 RECEIVE_CHUNK_SIZE = 1024
 
-__all__ = ['Client']
+__all__ = ['Client_Net']
 
 
-class Client():
+class Client_Net():
 
     def __init__(self, host='127.0.0.1', port=9000, is_secure=False):
 
@@ -42,10 +42,11 @@ class Client():
         self.socket = ClientWebSocket()
         task = self.socket.ConnectAsync(uri, self.token)
         task.Wait()
-        print('ready')
+        print('connected to cloud using .NET client!')
 
     def disconnect(self):
-        task = self.socket.CloseAsync(WebSocketCloseStatus.NormalClosure, 'script finished', self.token)
+        task = self.socket.CloseAsync(
+            WebSocketCloseStatus.NormalClosure, 'script finished', self.token)
         task.Wait()
         print('closed!')
 
@@ -69,7 +70,8 @@ class Client():
             else:
                 count = SEND_CHUNK_SIZE
             message_chunk = ArraySegment[Byte](message_buffer, offset, count)
-            task = self.socket.SendAsync(message_chunk, WebSocketMessageType.Text, is_last_message, self.token)
+            task = self.socket.SendAsync(
+                message_chunk, WebSocketMessageType.Text, is_last_message, self.token)
             task.Wait()
             i += 1
 
@@ -85,21 +87,10 @@ class Client():
         while True:
             # print('receive chunk')
             buffer = Array.CreateInstance(Byte, RECEIVE_CHUNK_SIZE)
-            task = self.socket.ReceiveAsync(ArraySegment[Byte](buffer), self.token)
+            task = self.socket.ReceiveAsync(
+                ArraySegment[Byte](buffer), self.token)
             task.Wait()
             chunk = Encoding.UTF8.GetString(buffer)
             chunks.append(chunk)
             if task.Result.EndOfMessage:
                 return ''.join(chunks).rstrip('\x00')
-
-# import json
-
-# client = Client()
-
-# j = {'yes': 'yeah'}
-
-# client.send(json.dumps(j))
-# m = client.receive()
-# print(json.loads(m)['yes'])
-
-# client.disconnect()
