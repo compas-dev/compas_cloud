@@ -19,10 +19,43 @@ else:
 __all__ = ['Proxy']
 
 class Proxy():
+    """Proxy is the interface between the user and a websocket client which communicates to websoket server in background.
 
-    def __init__(self, port=9000):
+    Parameters
+    ----------
+    port : int, optional
+        The port number on the remote server.
+        Default is ``9000``.
 
+    Notes
+    -----
+
+    The service will make the correct (version of the requested) functionality available
+    even if that functionality is part of a virtual environment. This is because it
+    will use the specific python interpreter for which the functionality is installed to
+    start the server.
+
+    If possible, the proxy will try to reconnect to an already existing service
+
+    The proxy will implement corresponding client with either python websokets library or
+    .NET depending on environment.
+
+    Examples
+    --------
+
+    .. code-block:: python
+
+        from compas_cloud import Proxy
+        p = Proxy()
+        dr_numpy = p.package('compas.numerical.dr_numpy')
+
+
+    """
+
+    def __init__(self, host='127.0.0.1', port=9000):
+        """init function that starts a remote server then assigns corresponding client(websockets/.net) to the proxy"""
         self._python = compas._os.select_python(None)
+        self.host = host
         self.port = port
         self.client = self.try_reconnect()
         if not self.client:
@@ -30,17 +63,18 @@ class Proxy():
         self.callbacks = {}
 
     def package(self, package, cache=False):
+        """returns wrapper of function that will be executed on server side"""
         return lambda *args, **kwargs: self.run(package, cache, *args, **kwargs)
 
     def send(self, data):
-        """encode given data and send to remote and parse returned result"""
+        """encode given data before sending to remote server then parse returned result"""
         istring = json.dumps(data, cls=DataEncoder)
         success = self.client.send(istring)
 
         result = self.client.receive()
         result = json.loads(result, cls=DataDecoder)
 
-        # keep receiving if it is a callback
+        # keep receiving response until a non-callback result is returned
         while True:
             if isinstance(result, dict):
                 if 'callback' in result:
@@ -56,11 +90,14 @@ class Proxy():
         return result
 
     def run(self, package, cache, *args, **kwargs):
-        """proxy to run the package function"""
+        """pass the arguments to remote function and wait to receive the results"""
         args, kwargs = self.parse_callbacks(args, kwargs)
         idict = {'package': package, 'cache': cache,
                  'args': args, 'kwargs': kwargs}
-        return self.send(idict)
+        result = self.send(idict)
+        if 'error' in result:
+            raise Exception(result['error'])
+        return result
 
     def get(self, cached_object):
         """get content of a cached object stored remotely"""
@@ -68,7 +105,7 @@ class Proxy():
         return self.send(idict)
 
     def cache(self, data):
-        """cache the give data and return a reference of it"""
+        """cache data or function to remote server and return a reference of it"""
         if callable(data):
             idict = {'cache_func': {
                 'name': data.__name__,
@@ -79,7 +116,7 @@ class Proxy():
         return self.send(idict)
 
     def parse_callbacks(self, args, kwargs):
-        "turn callback functions into a reference before sending to server"
+        """replace a callback functions with its cached reference then sending it to server"""
         for i, a in enumerate(args):
             cb = a
             if callable(cb):
@@ -93,15 +130,17 @@ class Proxy():
         return args, kwargs
 
     def try_reconnect(self):
+        """try to reconnect to a existing server"""
         try:
-            client = Client(port=self.port)
+            client = Client(self.host, self.port)
         except Exception:
             return None
         else:
-            print("Reconnected to an existing server at port", self.port)
+            print("Reconnected to an existing server at {}:{}".format(self.host, self.port))
         return client
 
     def start_server(self):
+        """use Popen to start a remote server in background"""
         env = compas._os.prepare_environment()
 
         args = [self._python, '-m', 'compas_cloud.server', str(self.port)]
@@ -109,14 +148,14 @@ class Proxy():
         # import sys
         # self._process = Popen(args, stdout=sys.stdout, stderr=sys.stderr, env=env)
 
-        print("Starting new cloud server in background")
+        print("Starting new cloud server in background at {}:{}".format(self.host, self.port))
 
         success = False
         count = 20
         while count:
             try:
                 time.sleep(0.2)
-                client = Client(port=self.port)
+                client = Client(self.host, self.port)
             except Exception:
                 count -= 1
                 print("    {} attempts left.".format(count))

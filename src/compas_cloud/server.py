@@ -6,28 +6,31 @@ import importlib
 import json
 
 
-
-class MyServerProtocol(WebSocketServerProtocol):
-
+class CompasServerProtocol(WebSocketServerProtocol):
+    """The CompasServerProtocol defines the behaviour of compas cloud server"""
     cached = {}
 
     def onConnect(self, request):
+        """print client info on connection"""
         print("Client connecting: {}".format(request.peer))
 
     def onClose(self, wasClean, code, reason):
+        """print reason on connection closes"""
         print("WebSocket connection closed: {}".format(reason))
 
     def onMessage(self, payload, isBinary):
+        """process the income messages"""
         result = self.process(payload)
         self.sendMessage(result.encode(), isBinary)
 
     def callback(self, _id, *args, **kwargs):
+        """send the arguments of callback functions to client side"""
         data = {'callback': {'id': _id, 'args': args, 'kwargs': kwargs}}
         istring = json.dumps(data, cls=DataEncoder)
         self.sendMessage(istring.encode())
 
     def load_cached(self, data):
-        # load cached data
+        """detect and load cached data or callback functions in arguments"""
         for i, a in enumerate(data['args']):
             if isinstance(a, dict):
                 if 'cached' in a:
@@ -39,11 +42,12 @@ class MyServerProtocol(WebSocketServerProtocol):
                     data['kwargs'][key] = self.cached[data['kwargs'][key]['cached']]
                 if 'callback' in data['kwargs'][key]:
                     _id = data['kwargs'][key]['callback']['id']
-                    self.cached[_id] = lambda *args, **kwargs: self.callback(_id, *args, **kwargs)
+                    self.cached[_id] = lambda *args, **kwargs: self.callback(
+                        _id, *args, **kwargs)
                     data['kwargs'][key] = self.cached[_id]
 
-
     def execute(self, data):
+        """execute corresponding binded functions with received arguments"""
         package = data['package']
         names = package.split('.')
         name = '.'.join(names[:-1])
@@ -61,43 +65,53 @@ class MyServerProtocol(WebSocketServerProtocol):
         return result
 
     def get(self, data):
+        """get cached data from its id"""
         _id = data['get']
         return self.cached[_id]
 
     def cache(self, data):
+        """cache received data and return its reference object"""
         to_cache = data['cache']
         _id = id(to_cache)
         self.cached[_id] = to_cache
         return {'cached': _id}
 
     def cache_func(self, data):
+        """cache a excutable function"""
+        raise NotImplementedError('The function is not ready yet')
 
-        print(data['cache_func'])
-
-        name = data['cache_func']['name']
-        exec(data['cache_func']['source'])
-        exec('self.cached[name] = {}'.format(name))
-        print(self.cached[name])
-        return {'cached_func': name}
-
+        # print(data['cache_func'])
+        # name = data['cache_func']['name']
+        # exec(data['cache_func']['source'])
+        # exec('self.cached[name] = {}'.format(name))
+        # print(self.cached[name])
+        # return {'cached_func': name}
 
     def process(self, data):
+        """process received data according to its content"""
         data = json.loads(data, cls=DataDecoder)
 
-        if 'cache' in data:
-            result = self.cache(data)
+        try:
 
-        if 'cache_func' in data:
-            result = self.cache_func(data)
+            if 'cache' in data:
+                result = self.cache(data)
 
-        if 'package' in data:
-            result = self.execute(data)
+            if 'cache_func' in data:
+                result = self.cache_func(data)
 
-        if 'get' in data:
-            result = self.get(data)
+            if 'package' in data:
+                result = self.execute(data)
+
+            if 'get' in data:
+                result = self.get(data)
+
+        except BaseException as error:
+            result = {'error': '{}:{}'.format(type(error).__name__, error)}
+            print(result)
 
         istring = json.dumps(result, cls=DataEncoder)
         return istring
+
 
 if __name__ == '__main__':
 
@@ -109,7 +123,7 @@ if __name__ == '__main__':
 
     from autobahn.twisted.websocket import WebSocketServerFactory
     factory = WebSocketServerFactory()
-    factory.protocol = MyServerProtocol
+    factory.protocol = CompasServerProtocol
 
     if len(sys.argv) > 1:
         reactor.listenTCP(int(sys.argv[1]), factory)

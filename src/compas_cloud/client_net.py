@@ -28,15 +28,25 @@ __all__ = ['Client_Net']
 
 
 class Client_Net():
+    """A Websoket client using .NET that works in a simple synchronous fashion
 
-    def __init__(self, host='127.0.0.1', port=9000, is_secure=False):
+    Parameters
+    ----------
 
-        if port is None:
-            uri = Uri(host)
-        else:
-            scheme = 'wss' if is_secure else 'ws'
-            builder = UriBuilder(scheme, host, port)
-            uri = builder.Uri
+    host: str, optional
+        The host ip of remote server.
+        Default is ``127.0.0.1``.
+
+    port : int, optional
+        The port number of remote server to connect to.
+        Default is ``9000``.
+
+    """
+    def __init__(self, host='127.0.0.1', port=9000):
+        """init the client, wait until it successfully connected to server"""
+        scheme = 'ws'
+        builder = UriBuilder(scheme, host, port)
+        uri = builder.Uri
 
         self.token = CancellationTokenSource().Token
         self.socket = ClientWebSocket()
@@ -45,13 +55,14 @@ class Client_Net():
         print('connected to cloud using .NET client!')
 
     def disconnect(self):
+        """disconnect from server"""
         task = self.socket.CloseAsync(
             WebSocketCloseStatus.NormalClosure, 'script finished', self.token)
         task.Wait()
         print('closed!')
 
     def send(self, payload):
-
+        """send a message to server and wait until sent"""
         if self.socket.State != WebSocketState.Open:
             raise RuntimeError('Connection is not open.')
 
@@ -79,7 +90,7 @@ class Client_Net():
                 return True
 
     def receive(self):
-
+        """listen to a message until received one"""
         if self.socket.State != WebSocketState.Open:
             raise RuntimeError('Connection is not open.')
 
