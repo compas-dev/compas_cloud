@@ -1,0 +1,3 @@
+autobahn==19.11.1
+Twisted==19.10.0
+websockets==8.1
