@@ -54,7 +54,7 @@ class Pool():
                                 line = out.read()
                                 if line[-16:] == TASK_FINISHED:
                                     break
-                                messages.put(("task_log", "task-{}: {}".format(proc.name, line)))
+                                messages.put(("task_log", "task-{} log: {}".format(proc.name, line)))
                                 lastpos = out.tell()
                             time.sleep(0.05)
 
@@ -84,34 +84,35 @@ class Pool():
         if msg_type == "task_running":
             key = content
             self.tasks[key]["status"] = "running"
-            print("task id:", key, "started")
-            print(self.status)
+            self.log("task-{}: started".format(key))
 
         elif msg_type == "task_finished":
             key = content
             self.tasks[key]["status"] = "finished"
-            print("task id:", key, "finished")
+            self.log("task-{}: finished".format(key))
 
         elif msg_type == "task_failed":
             key = content
             self.tasks[key]["status"] = "failed"
-            print("task id:", key, "failed")
+            self.log("task-{}: failed".format(key))
         elif msg_type == "task_log":
-            print(content, end="")
+            self.log(content, end="")
         else:
-            print(content)
+            self.log(content)
 
+    def log(self, *args, **kwargs):
+        print(self.status, "________", *args, **kwargs)
 
     def start(self):
 
-        print("starting with tasks:", self.status)
+        self.log("START")
         for worker in self.workers:
             worker.start()
 
     def listen(self):
         while not self.all_finished() or not self.messages.empty():
             self.process_message()
-        print("all tasks finished: ", self.status)
+        self.log("FINISHED")
 
     @property
     def status(self):
@@ -140,7 +141,7 @@ if __name__ == '__main__':
             time.sleep(1)
             print('sleeped ', i, 's')
 
-        raise RuntimeError('error example')
+        # raise RuntimeError('error example')
         return a
 
     p = Pool(log_path="temp")
