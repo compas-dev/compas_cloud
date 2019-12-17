@@ -6,10 +6,10 @@ except ImportError:
 from contextlib import contextmanager
 
 class CapturedText(object):
-    pass
+    log_path = None
 
 @contextmanager
-def captured(name=None):
+def captured(name=None, log_path = None):
     """
     Context manager to capture the printed output of the code in the with block
 
@@ -28,16 +28,20 @@ def captured(name=None):
     stdout = sys.stdout
     stderr = sys.stderr
 
-    sys.stdout = outfile = StringIO()
-    sys.stderr = errfile = StringIO()
+
+    if log_path:
+        sys.stdout = sys.stderr = open(log_path, "w", 1)
+    else:
+        sys.stdout = sys.stderr = StringIO()
     c = CapturedText()
     c.name = name
-    c.outfile = outfile
-    c.errfile = errfile
-    c.finished = False
+    c.outfile = sys.stdout
+    c.log_path = log_path
+
     yield c
-    # c.stdout = outfile.getvalue()
-    # c.stderr = errfile.getvalue()
+
+    if log_path:
+        c.outfile.close()
 
     sys.stdout = stdout
     sys.stderr = stderr

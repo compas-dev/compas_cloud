@@ -9,6 +9,10 @@ import logging
 from capture import captured
 from threading import Thread
 
+
+TASK_FINISHED = "____FINISHED____"
+
+
 class Pool():
     def __init__(self, log_path=None):
         self.counter = 0
@@ -16,11 +20,15 @@ class Pool():
         self.waiting = Queue()
         self.messages = Queue()
         self.create_workers()
-        self.log_path = log_path or "temp"
+        self.log_path = log_path
 
     def add_task(self, func, *args, **kwargs):
         task = {"func": func, "args": args, "kwargs": kwargs, "status": "waiting"}
         _id = len(self.tasks)
+        if self.log_path is not None:
+            task["log_path"] = os.path.join(self.log_path, "task-{}.log".format(_id))
+        else:
+            task["log_path"] = None
         self.tasks[_id] = task
         self.waiting.put(_id)
 
@@ -33,20 +41,21 @@ class Pool():
                 task_id = waiting.get()
                 task = tasks[task_id]
                 messages.put(("task_running", task_id))
-
-                # with CaptureOutput(relay=False) as capturer:
-                with captured(task_id) as c:
+                with captured(task_id, log_path=task["log_path"]) as c:
                     def output_reader(proc):
+                        if proc.log_path:
+                            messages.put(("massage", "task-{}: streaming log to {}".format(proc.name, proc.log_path)))
+                            return
                         out = proc.outfile
                         lastpos = 0
                         while True:
                             if out.tell() != lastpos:
                                 out.seek(lastpos)
                                 line = out.read()
-                                messages.put(("log", (proc.name, line)))
-                                lastpos = out.tell()
-                                if line[-16:] == "____FINISHED____":
+                                if line[-16:] == TASK_FINISHED:
                                     break
+                                messages.put(("task_log", "task-{}: {}".format(proc.name, line)))
+                                lastpos = out.tell()
                             time.sleep(0.05)
 
                     t = Thread(target=output_reader, args=(c,))
@@ -54,19 +63,19 @@ class Pool():
 
                     try:
                         task["func"](*task["args"], **task["kwargs"])
-                        print("____FINISHED____", end="")
+                        print(TASK_FINISHED, end="")
                         t.join()
                         messages.put(("task_finished", task_id))
                         c.finished = True
                     except Exception:
                         traceback.print_exc()
-                        print("____FINISHED____", end="")
+                        print(TASK_FINISHED, end="")
                         t.join()
                         messages.put(("task_failed", task_id))
 
             messages.put(("messege", "worker {} terminated".format(pid)))
 
-        self.workers = [Process(target=worker, args=(self.waiting, self.messages, self.tasks)) for i in range(1)]
+        self.workers = [Process(target=worker, args=(self.waiting, self.messages, self.tasks)) for i in range(4)]
 
     def process_message(self):
 
@@ -87,7 +96,8 @@ class Pool():
             key = content
             self.tasks[key]["status"] = "failed"
             print("task id:", key, "failed")
-
+        elif msg_type == "task_log":
+            print(content, end="")
         else:
             print(content)
 
@@ -101,7 +111,6 @@ class Pool():
     def listen(self):
         while not self.all_finished() or not self.messages.empty():
             self.process_message()
-        # self.terminate()
         print("all tasks finished: ", self.status)
 
     @property
@@ -131,15 +140,17 @@ if __name__ == '__main__':
             time.sleep(1)
             print('sleeped ', i, 's')
 
-        # raise RuntimeError('error example')
+        raise RuntimeError('error example')
         return a
 
-    p = Pool()
+    p = Pool(log_path="temp")
+    # p = Pool()
+
     p.add_task(func, 1)
     p.add_task(func, 2)
     p.add_task(func, 3)
-    # p.add_task(func, 4)
-    # p.add_task(func, 5)
+    p.add_task(func, 4)
+    p.add_task(func, 5)
 
 
     p.start()
