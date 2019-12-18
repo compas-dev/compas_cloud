@@ -3,8 +3,8 @@ import os
 import sys
 from multiprocessing import Process, Queue, cpu_count
 from contextlib import contextmanager
-from capturer import CaptureOutput
 import traceback
+from capture import captured
 from threading import Thread
 
 
