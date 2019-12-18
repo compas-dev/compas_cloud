@@ -1,26 +1,24 @@
 import time
 import os
 import sys
-from multiprocessing import Process, Queue, current_process
+from multiprocessing import Process, Queue, cpu_count
 from contextlib import contextmanager
 from capturer import CaptureOutput
 import traceback
-import logging
-from capture import captured
 from threading import Thread
 
 
 TASK_FINISHED = "____FINISHED____"
 
 
-class Pool():
-    def __init__(self, log_path=None):
+class Sessions():
+    def __init__(self, log_path=None, worker_num=None):
         self.counter = 0
         self.tasks = {}
         self.waiting = Queue()
         self.messages = Queue()
-        self.create_workers()
         self.log_path = log_path
+        self.worker_num = worker_num
 
     def add_task(self, func, *args, **kwargs):
         task = {"func": func, "args": args, "kwargs": kwargs, "status": "waiting"}
@@ -32,7 +30,7 @@ class Pool():
         self.tasks[_id] = task
         self.waiting.put(_id)
 
-    def create_workers(self):
+    def create_workers(self, worker_num=None):
 
         def worker(waiting, messages, tasks):
             pid = os.getpid()
@@ -75,7 +73,13 @@ class Pool():
 
             messages.put(("messege", "worker {} terminated".format(pid)))
 
-        self.workers = [Process(target=worker, args=(self.waiting, self.messages, self.tasks)) for i in range(4)]
+        if self.worker_num is None:
+            self.worker_num = cpu_count()
+        if self.worker_num > len(self.tasks):
+            self.worker_num = len(self.tasks)
+
+        self.log("using {} workers".format(self.worker_num))
+        self.workers = [Process(target=worker, args=(self.waiting, self.messages, self.tasks)) for i in range(self.worker_num)]
 
     def process_message(self):
 
@@ -106,6 +110,7 @@ class Pool():
     def start(self):
 
         self.log("START")
+        self.create_workers()
         for worker in self.workers:
             worker.start()
 
@@ -144,15 +149,14 @@ if __name__ == '__main__':
         # raise RuntimeError('error example')
         return a
 
-    p = Pool(log_path="temp")
-    # p = Pool()
+    s = Sessions(log_path="temp", worker_num=1)
 
-    p.add_task(func, 1)
-    p.add_task(func, 2)
-    p.add_task(func, 3)
-    p.add_task(func, 4)
-    p.add_task(func, 5)
+    s.add_task(func, 1)
+    s.add_task(func, 2)
+    s.add_task(func, 3)
+    s.add_task(func, 4)
+    s.add_task(func, 5)
 
 
-    p.start()
-    p.listen()
+    s.start()
+    s.listen()
