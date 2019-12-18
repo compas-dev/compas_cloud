@@ -4,8 +4,41 @@ import sys
 from multiprocessing import Process, Queue, cpu_count
 from contextlib import contextmanager
 import traceback
-from capture import captured
 from threading import Thread
+
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
+
+class CapturedText(object):
+    log_path = None
+
+
+@contextmanager
+def captured(name=None, log_path=None):
+
+    stdout = sys.stdout
+    stderr = sys.stderr
+
+
+    if log_path:
+        sys.stdout = sys.stderr = open(log_path, "w", 1)
+    else:
+        sys.stdout = sys.stderr = StringIO()
+    c = CapturedText()
+    c.name = name
+    c.outfile = sys.stdout
+    c.log_path = log_path
+
+    yield c
+
+    if log_path:
+        c.outfile.close()
+
+    sys.stdout = stdout
+    sys.stderr = stderr
+
 
 
 TASK_FINISHED = "____FINISHED____"
@@ -19,6 +52,7 @@ class Sessions():
         self.messages = Queue()
         self.log_path = log_path
         self.worker_num = worker_num
+        self.socket = None
 
     def add_task(self, func, *args, **kwargs):
         task = {"func": func, "args": args, "kwargs": kwargs, "status": "waiting"}
@@ -149,7 +183,7 @@ if __name__ == '__main__':
         # raise RuntimeError('error example')
         return a
 
-    s = Sessions(log_path="temp", worker_num=1)
+    s = Sessions(log_path="temp", worker_num=4)
 
     s.add_task(func, 1)
     s.add_task(func, 2)

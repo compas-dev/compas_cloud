@@ -82,6 +82,10 @@ class Proxy():
                     self.callbacks[cb['id']](*cb['args'], **cb['kwargs'])
                     result = self.client.receive()
                     result = json.loads(result, cls=DataDecoder)
+                elif 'listen' in result:
+                    print(*result['listen'])
+                    result = self.client.receive()
+                    result = json.loads(result, cls=DataDecoder)
                 else:
                     break
             else:
@@ -98,6 +102,9 @@ class Proxy():
         if 'error' in result:
             raise Exception(result['error'])
         return result
+
+    def Sessions(self, *args, **kwargs):
+        return Sessions_client(self, *args, **kwargs)
 
     def get(self, cached_object):
         """get content of a cached object stored remotely"""
@@ -168,6 +175,30 @@ class Proxy():
             print("server started with port", self.port)
 
         return client
+
+
+class Sessions_client():
+
+    def __init__(self, proxy, *args, **kwargs):
+        self.proxy = proxy
+        idict = {'sessions': {'command': 'create', 'args': args, 'kwargs': kwargs}}
+        print(self.proxy.send(idict))
+
+    def start(self):
+        idict = {'sessions': {'command': 'start', 'args': (), 'kwargs': {}}}
+        print(self.proxy.send(idict))
+
+    def add_task(self, func, *args, **kwargs):
+        cached = self.proxy.cache(func)
+        idict = {'sessions': {'command': 'add_task', 'func': cached, 'args': args, 'kwargs': kwargs}}
+        print(self.proxy.send(idict))
+
+    def listen(self):
+        idict = {'sessions': {'command': 'listen', 'args': (), 'kwargs': {}}}
+        print(self.proxy.send(idict))
+
+    def terminate(self):
+        pass
 
 if __name__ == "__main__":
     pass

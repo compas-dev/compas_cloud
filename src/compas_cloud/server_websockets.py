@@ -1,36 +1,87 @@
-from autobahn.twisted.websocket import WebSocketServerProtocol
+import asyncio
+import websockets
+import time
 
 from compas.utilities import DataEncoder
 from compas.utilities import DataDecoder
 import importlib
 import json
 from compas_cloud import Sessions
-from threading import Thread
+import functools
 
-session = None
+from multiprocessing import Queue
 
-class CompasServerProtocol(WebSocketServerProtocol):
-    """The CompasServerProtocol defines the behaviour of compas cloud server"""
-    cached = {}
+class Sessions_server(Sessions):
 
-    def onConnect(self, request):
-        """print client info on connection"""
-        print("Client connecting: {}".format(request.peer))
+    socket_message = Queue()
 
-    def onClose(self, wasClean, code, reason):
-        """print reason on connection closes"""
-        print("WebSocket connection closed: {}".format(reason))
+    def log(self, *args, **kwargs):
+        print(self.status, "________", *args, **kwargs)
+        self.socket_message.put((self.status, "________", args))
 
-    def onMessage(self, payload, isBinary):
-        """process the income messages"""
-        result = self.process(payload)
-        self.sendMessage(result.encode(), isBinary)
+    async def listen(self, socket):
+        while not self.all_finished() or not self.messages.empty():
+            self.process_message()
+            await self.send_to_socket(socket)
+        self.log("FINISHED")
+        await self.send_to_socket(socket)
+
+    async def send_to_socket(self, socket):
+        while not self.socket_message.empty():
+            msg = self.socket_message.get()
+            data = json.dumps({"listen": msg})
+            await socket.send(data)
+
+
+
+class Server_Websokets():
+
+    def __init__(self, host='127.0.0.1', port=9000):
+        """init the client, wait until it successfully connected to server"""
+
+        self.cached = {}
+        self.websocket = None
+
+        async def user_session(websocket, path):
+            self.websocket = websocket
+            print('user connected', websocket, path)
+
+            while True:
+                try:
+                    data = await self.websocket.recv()
+                    result = await self.process(data)
+                    await self.websocket.send(result)
+
+                except Exception as e:
+                    print('user disconnected:', e)
+                    break
+
+            self.websocket = None
+
+        # async def messager():
+        #     while True:
+        #         time.sleep(0.5)
+        #         print(self.websocket)
+
+        # self.cached = {}
+
+
+        start_server = websockets.serve(user_session, host, port)
+        self.loop = asyncio.get_event_loop()
+        self.loop.run_until_complete(start_server)
+        # asyncio.ensure_future(messager())
+        print('started server')
+        self.loop.run_forever()
+
 
     def callback(self, _id, *args, **kwargs):
         """send the arguments of callback functions to client side"""
         data = {'callback': {'id': _id, 'args': args, 'kwargs': kwargs}}
         istring = json.dumps(data, cls=DataEncoder)
-        self.sendMessage(istring.encode())
+        # self.sendMessage(istring.encode())
+        # asyncio.get_event_loop().call_soon(self.websocket.send, "asdfasdfasf")
+        # print(asyncio.get_event_loop())
+
 
     def load_cached(self, data):
         """detect and load cached data or callback functions in arguments"""
@@ -92,11 +143,11 @@ class CompasServerProtocol(WebSocketServerProtocol):
                 return True
         return False
 
-    def control_sessions(self, data):
+    async def control_sessions(self, data):
         s = data["sessions"]
         if s["command"] == 'create':
             if not self.sessions_alive():
-                self.sessions = Sessions(*s['args'], **s['kwargs'])
+                self.sessions = Sessions_server()
                 return "session successfully created"
             else:
                 raise RuntimeError("There is already sessions running, try to reconnect or shut down")
@@ -115,16 +166,14 @@ class CompasServerProtocol(WebSocketServerProtocol):
                 return "sessions started"
 
             if s["command"] == 'listen':
-                # self.sessions.listen(self)
-
-                
-
-                import time
-                for i in range(10):
-                    time.sleep(1)
-                    print('sending to socket')
-                    istring = json.dumps({"listen": ("listen","check")})
-                    print(self.sendMessage(istring.encode()))
+                await self.sessions.listen(self.websocket)
+                # import time
+                # for i in range(10):
+                #     time.sleep(1)
+                #     print('sending to socket')
+                #     istring = json.dumps({"listen": ("listen", i)})
+                #     # print(self.sendMessage(istring.encode()))
+                #     await self.websocket.send(istring)
 
                 return "Session concluded"
 
@@ -132,7 +181,7 @@ class CompasServerProtocol(WebSocketServerProtocol):
                 self.sessions.terminate()
                 self.sessions = None
 
-    def process(self, data):
+    async def process(self, data):
         """process received data according to its content"""
         data = json.loads(data, cls=DataDecoder)
 
@@ -151,7 +200,7 @@ class CompasServerProtocol(WebSocketServerProtocol):
                 result = self.get(data)
 
             if 'sessions' in data:
-                result = self.control_sessions(data)
+                result = await self.control_sessions(data)
 
         except BaseException as error:
             result = {'error': '{}:{}'.format(type(error).__name__, error)}
@@ -160,21 +209,5 @@ class CompasServerProtocol(WebSocketServerProtocol):
         istring = json.dumps(result, cls=DataEncoder)
         return istring
 
-
-if __name__ == '__main__':
-
-    import sys
-
-    from twisted.python import log
-    from twisted.internet import reactor
-    log.startLogging(sys.stdout)
-
-    from autobahn.twisted.websocket import WebSocketServerFactory
-    factory = WebSocketServerFactory()
-    factory.protocol = CompasServerProtocol
-
-    if len(sys.argv) > 1:
-        reactor.listenTCP(int(sys.argv[1]), factory)
-    else:
-        reactor.listenTCP(9000, factory)
-    reactor.run()
+# if __name__ == "main":
+Server_Websokets()
