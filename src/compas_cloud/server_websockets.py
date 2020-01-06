@@ -9,7 +9,7 @@ import json
 from compas_cloud import Sessions
 import functools
 
-from multiprocessing import Queue
+from multiprocessing import Queue, Process
 
 class Sessions_server(Sessions):
 
@@ -45,42 +45,53 @@ class Server_Websokets():
         async def user_session(websocket, path):
             self.websocket = websocket
             print('user connected', websocket, path)
+            self.messages_to_send = Queue()
 
-            while True:
-                try:
-                    data = await self.websocket.recv()
-                    result = await self.process(data)
-                    await self.websocket.send(result)
+            async def listen():
+                while True:
+                    try:
+                        data = await self.websocket.recv()
+                        result = await self.process(data)
+                        await self.websocket.send(result)
 
-                except Exception as e:
-                    print('user disconnected:', e)
-                    break
+                    except Exception as e:
+                        print('user disconnected:', e)
+                        break
+
+            async def wait():
+                i = 0
+                while i < 20:
+
+                    if self.messages_to_send.empty():
+                        # print('empty')
+                        pass
+                    else:
+                        i += 1
+                        # print(self.messages_to_send.get())
+                        print('callback', i)
+                        # print(self.messages_to_send.get())
+                        await self.websocket.send(self.messages_to_send.get())
+
+                    await asyncio.sleep(0.01)
+
+            await asyncio.wait([listen(), wait()])
 
             self.websocket = None
-
-        # async def messager():
-        #     while True:
-        #         time.sleep(0.5)
-        #         print(self.websocket)
-
-        # self.cached = {}
-
 
         start_server = websockets.serve(user_session, host, port)
         self.loop = asyncio.get_event_loop()
         self.loop.run_until_complete(start_server)
-        # asyncio.ensure_future(messager())
         print('started server')
         self.loop.run_forever()
+
 
 
     def callback(self, _id, *args, **kwargs):
         """send the arguments of callback functions to client side"""
         data = {'callback': {'id': _id, 'args': args, 'kwargs': kwargs}}
         istring = json.dumps(data, cls=DataEncoder)
-        # self.sendMessage(istring.encode())
-        # asyncio.get_event_loop().call_soon(self.websocket.send, "asdfasdfasf")
-        # print(asyncio.get_event_loop())
+        self.messages_to_send.put(istring)
+
 
 
     def load_cached(self, data):
@@ -115,7 +126,10 @@ class Server_Websokets():
             self.cached[id(to_cache)] = to_cache
             result = {'cached': id(to_cache)}
         else:
+            print('start execution of function')
             result = function(*data['args'], **data['kwargs'])
+
+        print('execution finished')
         return result
 
     def get(self, data):

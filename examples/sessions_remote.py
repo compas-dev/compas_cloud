@@ -1,8 +1,6 @@
 from compas_cloud import Proxy
 
-p = Proxy()
 
-s = p.Sessions()
 
 def func(a):
     import time
@@ -14,14 +12,14 @@ def func(a):
     # raise RuntimeError('error example')
     return a
 
-# s = Sessions(log_path="temp", worker_num=4)
+p = Proxy()
+s = p.Sessions()
 
-s.add_task(func, 5)
+s.add_task(func, 1)
 s.add_task(func, 2)
-# s.add_task(func, 3)
-# s.add_task(func, 4)
-# s.add_task(func, 5)
-
+s.add_task(func, 3)
+s.add_task(func, 4)
+s.add_task(func, 5)
 
 s.start()
 s.listen()

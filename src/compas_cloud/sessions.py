@@ -52,7 +52,6 @@ class Sessions():
         self.messages = Queue()
         self.log_path = log_path
         self.worker_num = worker_num
-        self.socket = None
 
     def add_task(self, func, *args, **kwargs):
         task = {"func": func, "args": args, "kwargs": kwargs, "status": "waiting"}

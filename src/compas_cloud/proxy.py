@@ -69,23 +69,23 @@ class Proxy():
     def send(self, data):
         """encode given data before sending to remote server then parse returned result"""
         istring = json.dumps(data, cls=DataEncoder)
-        success = self.client.send(istring)
+        self.client.send(istring)
 
-        result = self.client.receive()
-        result = json.loads(result, cls=DataDecoder)
+        def listen_and_parse():
+            result = self.client.receive()
+            return json.loads(result, cls=DataDecoder)
 
+        result = listen_and_parse()
         # keep receiving response until a non-callback result is returned
         while True:
             if isinstance(result, dict):
                 if 'callback' in result:
                     cb = result['callback']
                     self.callbacks[cb['id']](*cb['args'], **cb['kwargs'])
-                    result = self.client.receive()
-                    result = json.loads(result, cls=DataDecoder)
+                    result = listen_and_parse()
                 elif 'listen' in result:
                     print(*result['listen'])
-                    result = self.client.receive()
-                    result = json.loads(result, cls=DataDecoder)
+                    result = listen_and_parse()
                 else:
                     break
             else:

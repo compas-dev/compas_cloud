@@ -1,4 +1,4 @@
-from autobahn.twisted.websocket import WebSocketServerProtocol
+from autobahn.asyncio.websocket import WebSocketServerProtocol
 
 from compas.utilities import DataEncoder
 from compas.utilities import DataDecoder
@@ -6,8 +6,30 @@ import importlib
 import json
 from compas_cloud import Sessions
 from threading import Thread
+from multiprocessing import Queue
 
 session = None
+
+class Sessions(Sessions):
+
+    socket_message = Queue()
+
+    def log(self, *args, **kwargs):
+        print(self.status, "________", *args, **kwargs)
+        self.socket_message.put((self.status, "________", args))
+
+    def listen(self, socket):
+        while not self.all_finished() or not self.messages.empty():
+            self.process_message()
+            self.send_to_socket(socket)
+        self.log("FINISHED")
+        self.send_to_socket(socket)
+
+    def send_to_socket(self, socket):
+        while not self.socket_message.empty():
+            msg = self.socket_message.get()
+            data = json.dumps({"listen": msg})
+            socket.sendMessage(data.encode())
 
 class CompasServerProtocol(WebSocketServerProtocol):
     """The CompasServerProtocol defines the behaviour of compas cloud server"""
@@ -115,17 +137,7 @@ class CompasServerProtocol(WebSocketServerProtocol):
                 return "sessions started"
 
             if s["command"] == 'listen':
-                # self.sessions.listen(self)
-
-                
-
-                import time
-                for i in range(10):
-                    time.sleep(1)
-                    print('sending to socket')
-                    istring = json.dumps({"listen": ("listen","check")})
-                    print(self.sendMessage(istring.encode()))
-
+                self.sessions.listen(self)
                 return "Session concluded"
 
             if s["command"] == 'shutdown':
@@ -163,18 +175,26 @@ class CompasServerProtocol(WebSocketServerProtocol):
 
 if __name__ == '__main__':
 
-    import sys
+    try:
+        import asyncio
+    except ImportError:
+        # Trollius >= 0.3 was renamed
+        import trollius as asyncio
 
-    from twisted.python import log
-    from twisted.internet import reactor
-    log.startLogging(sys.stdout)
-
-    from autobahn.twisted.websocket import WebSocketServerFactory
+    from autobahn.asyncio.websocket import WebSocketServerFactory
     factory = WebSocketServerFactory()
     factory.protocol = CompasServerProtocol
 
-    if len(sys.argv) > 1:
-        reactor.listenTCP(int(sys.argv[1]), factory)
-    else:
-        reactor.listenTCP(9000, factory)
-    reactor.run()
+    loop = asyncio.get_event_loop()
+    coro = loop.create_server(factory, '127.0.0.1', 9000)
+    server = loop.run_until_complete(coro)
+    print("starting server")
+
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        print("shuting down server")
+        server.close()
+        loop.close()
