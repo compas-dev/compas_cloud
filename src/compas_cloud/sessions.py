@@ -1,6 +1,7 @@
 import time
 import os
 import sys
+import json
 from multiprocessing import Process, Queue, cpu_count
 from contextlib import contextmanager
 import traceback
@@ -45,13 +46,14 @@ TASK_FINISHED = "____FINISHED____"
 
 
 class Sessions():
-    def __init__(self, log_path=None, worker_num=None):
+    def __init__(self, log_path=None, worker_num=None, socket=None):
         self.counter = 0
         self.tasks = {}
         self.waiting = Queue()
         self.messages = Queue()
         self.log_path = log_path
         self.worker_num = worker_num
+        self.socket = socket
 
     def add_task(self, func, *args, **kwargs):
         task = {"func": func, "args": args, "kwargs": kwargs, "status": "waiting"}
@@ -139,6 +141,10 @@ class Sessions():
 
     def log(self, *args, **kwargs):
         print(self.status, "________", *args, **kwargs)
+        if self.socket is not None:
+            msg = (self.status, "________", args)
+            data = json.dumps({"listen": msg})
+            self.socket.sendMessage(data.encode())
 
     def start(self):
 

@@ -8,32 +8,11 @@ from compas_cloud import Sessions
 from threading import Thread
 from multiprocessing import Queue
 
-session = None
-
-class Sessions(Sessions):
-
-    socket_message = Queue()
-
-    def log(self, *args, **kwargs):
-        print(self.status, "________", *args, **kwargs)
-        self.socket_message.put((self.status, "________", args))
-
-    def listen(self, socket):
-        while not self.all_finished() or not self.messages.empty():
-            self.process_message()
-            self.send_to_socket(socket)
-        self.log("FINISHED")
-        self.send_to_socket(socket)
-
-    def send_to_socket(self, socket):
-        while not self.socket_message.empty():
-            msg = self.socket_message.get()
-            data = json.dumps({"listen": msg})
-            socket.sendMessage(data.encode())
 
 class CompasServerProtocol(WebSocketServerProtocol):
     """The CompasServerProtocol defines the behaviour of compas cloud server"""
     cached = {}
+    sessions = None
 
     def onConnect(self, request):
         """print client info on connection"""
@@ -109,16 +88,13 @@ class CompasServerProtocol(WebSocketServerProtocol):
         return {'cached_func': name}
 
     def sessions_alive(self):
-        if hasattr(self, 'sessions'):
-            if isinstance(self.sessions, Sessions):
-                return True
-        return False
+        return isinstance(self.sessions, Sessions)
 
     def control_sessions(self, data):
         s = data["sessions"]
         if s["command"] == 'create':
             if not self.sessions_alive():
-                self.sessions = Sessions(*s['args'], **s['kwargs'])
+                self.sessions = Sessions(socket=self)
                 return "session successfully created"
             else:
                 raise RuntimeError("There is already sessions running, try to reconnect or shut down")
@@ -137,8 +113,9 @@ class CompasServerProtocol(WebSocketServerProtocol):
                 return "sessions started"
 
             if s["command"] == 'listen':
-                self.sessions.listen(self)
-                return "Session concluded"
+                self.sessions.listen()
+                self.sessions = None
+                return "All sessions concluded"
 
             if s["command"] == 'shutdown':
                 self.sessions.terminate()
