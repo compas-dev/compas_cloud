@@ -77,7 +77,7 @@ class Sessions():
                 with captured(task_id, log_path=task["log_path"]) as c:
                     def output_reader(proc):
                         if proc.log_path:
-                            messages.put(("massage", "task-{}: streaming log to {}".format(proc.name, proc.log_path)))
+                            messages.put(("message", "task-{}: streaming log to {}".format(proc.name, proc.log_path)))
                             return
                         out = proc.outfile
                         lastpos = 0
