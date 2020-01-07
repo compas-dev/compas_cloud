@@ -69,7 +69,7 @@ class Sessions():
 
         def worker(waiting, messages, tasks):
             pid = os.getpid()
-            messages.put(("messege", "worker {} started".format(pid)))
+            messages.put(("message", "worker {} started".format(pid)))
             while not waiting.empty():
                 task_id = waiting.get()
                 task = tasks[task_id]
@@ -106,7 +106,7 @@ class Sessions():
                         t.join()
                         messages.put(("task_failed", task_id))
 
-            messages.put(("messege", "worker {} terminated".format(pid)))
+            messages.put(("message", "worker {} terminated".format(pid)))
 
         if self.worker_num is None:
             self.worker_num = cpu_count()
