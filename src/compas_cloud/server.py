@@ -91,6 +91,7 @@ class CompasServerProtocol(WebSocketServerProtocol):
         return isinstance(self.sessions, Sessions)
 
     def control_sessions(self, data):
+        """control attached sessions according to message received"""
         s = data["sessions"]
         if s["command"] == 'create':
             if not self.sessions_alive():

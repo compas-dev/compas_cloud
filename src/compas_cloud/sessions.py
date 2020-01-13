@@ -46,7 +46,38 @@ TASK_FINISHED = "____FINISHED____"
 
 
 class Sessions():
+    """a task-manager class that helps to execute a batch of long-lasting tasks such as FEA and DEM simulations.
+
+    Parameters
+    ----------
+    log_path : str, optional
+        The folder path to store individual task logs.
+        Default is ``None``.
+    worker_num : int, optional
+        The number of workers to execute tasks in parallel.
+        Default is equal to number of available CPUs.
+    socket: internal use only
+
+    Examples
+    --------
+
+    .. code-block:: python
+
+        from compas_cloud import Sessions
+
+        def func(a):
+            import time
+            for i in range(a):
+                time.sleep(1)
+                print('sleeped ', i, 's')
+
+        s.add_task(func, 1)
+        s.start()
+        s.listen()
+
+    """
     def __init__(self, log_path=None, worker_num=None, socket=None):
+        """init function"""
         self.counter = 0
         self.tasks = {}
         self.waiting = Queue()
@@ -56,6 +87,7 @@ class Sessions():
         self.socket = socket
 
     def add_task(self, func, *args, **kwargs):
+        """add a task function and its input parameters to the queue"""
         task = {"func": func, "args": args, "kwargs": kwargs, "status": "waiting"}
         _id = len(self.tasks)
         if self.log_path is not None:
@@ -147,13 +179,14 @@ class Sessions():
             self.socket.sendMessage(data.encode())
 
     def start(self):
-
+        """kick off the execution of tasks"""
         self.log("START")
         self.create_workers()
         for worker in self.workers:
             worker.start()
 
     def listen(self):
+        """listen to the task messages until all finished"""
         while not self.all_finished() or not self.messages.empty():
             self.process_message()
         self.log("FINISHED")
