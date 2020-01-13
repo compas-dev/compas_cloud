@@ -3,7 +3,7 @@ from compas.geometry import transform_points
 import time
 
 
-# # USING NATIVE PYTHON
+# USING NATIVE PYTHON
 
 
 pts = [[i, 0, 0] for i in range(0, 10000)]
