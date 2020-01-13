@@ -5,5 +5,4 @@ dot = proxy.package('numpy.dot')
 
 a = [[1, 0], [0, 1]]
 b = [[4, 1], [2, 2]]
-dot(a, b)
 print(dot(a, b))
