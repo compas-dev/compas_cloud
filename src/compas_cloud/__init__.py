@@ -5,6 +5,10 @@ from __future__ import print_function
 
 
 from .proxy import Proxy
-from .sessions import Sessions
+try:
+    from .sessions import Sessions
+except ImportError:
+    # ironpython is not able to use Sessions
+    pass
 
 __all__ = [name for name in dir() if not name.startswith('_')]
