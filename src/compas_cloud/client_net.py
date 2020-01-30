@@ -19,11 +19,11 @@ from System.Text import Encoding
 from System.Threading import CancellationTokenSource
 from System.Threading import SemaphoreSlim
 
-
 import time
 
 SEND_CHUNK_SIZE = 1024
 RECEIVE_CHUNK_SIZE = 1024
+
 
 __all__ = ['Client_Net']
 

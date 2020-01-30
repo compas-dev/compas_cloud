@@ -15,12 +15,14 @@ import inspect
 from subprocess import Popen
 from subprocess import PIPE
 
-if compas.is_ironpython():
+if compas.IPY:
     from .client_net import Client_Net as Client
 else:
     from .client_websockets import Client_Websokets as Client
 
+
 __all__ = ['Proxy']
+
 
 class Proxy():
     """Proxy is the interface between the user and a websocket client which communicates to websoket server in background.
