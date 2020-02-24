@@ -103,6 +103,6 @@ class Client_Net():
                 ArraySegment[Byte](buffer), self.token)
             task.Wait()
             chunk = Encoding.UTF8.GetString(buffer)
-            chunks.append(chunk)
+            chunks.append(chunk.rstrip('\x00'))
             if task.Result.EndOfMessage:
-                return ''.join(chunks).rstrip('\x00')
+                return ''.join(chunks)
