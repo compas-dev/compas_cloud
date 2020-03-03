@@ -7,6 +7,7 @@ import json
 from compas_cloud import Sessions
 from threading import Thread
 from multiprocessing import Queue
+import time
 
 
 class CompasServerProtocol(WebSocketServerProtocol):
@@ -58,6 +59,8 @@ class CompasServerProtocol(WebSocketServerProtocol):
         module = importlib.import_module(name)
         function = getattr(module, names[-1])
 
+        start = time.time()
+        print('running:', package)
         self.load_cached(data)
 
         if data['cache']:
@@ -66,6 +69,8 @@ class CompasServerProtocol(WebSocketServerProtocol):
             result = {'cached': id(to_cache)}
         else:
             result = function(*data['args'], **data['kwargs'])
+        t = time.time()-start
+        print('finished in: %fs'%t)
         return result
 
     def get(self, data):
@@ -166,7 +171,7 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     coro = loop.create_server(factory, '127.0.0.1', 9000)
     server = loop.run_until_complete(coro)
-    print("starting server")
+    print("starting compas_cloud server")
 
     try:
         loop.run_forever()

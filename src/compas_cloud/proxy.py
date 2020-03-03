@@ -8,6 +8,7 @@ from compas.utilities import DataEncoder
 from compas.utilities import DataDecoder
 
 import compas
+import os
 
 import time
 import inspect
@@ -58,11 +59,12 @@ class Proxy():
 
     """
 
-    def __init__(self, host='127.0.0.1', port=9000):
+    def __init__(self, host='127.0.0.1', port=9000, background=True):
         """init function that starts a remote server then assigns corresponding client(websockets/.net) to the proxy"""
         self._python = compas._os.select_python(None)
         self.host = host
         self.port = port
+        self.background = background
         self.client = self.try_reconnect()
         if not self.client:
             self.client = self.start_server()
@@ -157,11 +159,19 @@ class Proxy():
         env = compas._os.prepare_environment()
 
         args = [self._python, '-m', 'compas_cloud.server', str(self.port)]
-        self._process = Popen(args, stdout=PIPE, stderr=PIPE, env=env)
+
+        if self.background:
+            print("Starting new cloud server in background at {}:{}".format(self.host, self.port))
+            self._process = Popen(args, stdout=PIPE, stderr=PIPE, env=env)
+        else:
+            print("Starting new cloud server with prompt console at {}:{}".format(self.host, self.port))
+            args[0] = compas._os.select_python('python')
+            args = " ".join(args)
+            os.system('start /B '+args)
+
         # import sys
         # self._process = Popen(args, stdout=sys.stdout, stderr=sys.stderr, env=env)
 
-        print("Starting new cloud server in background at {}:{}".format(self.host, self.port))
 
         success = False
         count = 20
