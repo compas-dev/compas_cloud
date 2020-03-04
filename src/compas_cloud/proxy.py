@@ -76,6 +76,10 @@ class Proxy():
 
     def send(self, data):
         """encode given data before sending to remote server then parse returned result"""
+        if not self.client:
+            print("There is no connected client, try to restart proxy")
+            return
+        
         istring = json.dumps(data, cls=DataEncoder)
         self.client.send(istring)
 
@@ -100,6 +104,10 @@ class Proxy():
                 break
 
         return result
+
+    def send_only(self, data):
+        istring = json.dumps(data, cls=DataEncoder)
+        return self.client.send(istring)
 
     def run(self, package, cache, *args, **kwargs):
         """pass the arguments to remote function and wait to receive the results"""
@@ -191,6 +199,25 @@ class Proxy():
 
         return client
 
+    def restart(self):
+        """shut down and restart existing server and given ip and port"""
+        self.client = self.try_reconnect()
+        self.shutdown()
+        time.sleep(1)
+        self.client = self.start_server()
+
+    def shutdown(self):
+        """shut down currently connected server"""
+        if self.client:
+            if self.send_only({'control': 'shutdown'}):
+                self.client = None
+                print("server will shutdown and proxy client disconnected.")
+        else:
+            print("there is already no connected client")
+
+    def check(self):
+        """check if server connection is good"""
+        return self.send({'control': 'check'})
 
 class Sessions_client():
 

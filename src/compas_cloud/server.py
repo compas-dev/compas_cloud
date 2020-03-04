@@ -95,6 +95,16 @@ class CompasServerProtocol(WebSocketServerProtocol):
     def sessions_alive(self):
         return isinstance(self.sessions, Sessions)
 
+    def control(self, data):
+        command = data['control']
+        if command == 'shutdown':
+            raise KeyboardInterrupt
+        if command == 'check':
+            print('check from client')
+            return {'status': "I'm good"}
+            
+        raise ValueError("Unrecognised control command")
+
     def control_sessions(self, data):
         """control attached sessions according to message received"""
         s = data["sessions"]
@@ -148,7 +158,14 @@ class CompasServerProtocol(WebSocketServerProtocol):
             if 'sessions' in data:
                 result = self.control_sessions(data)
 
+            if 'control' in data:
+                result = self.control(data)
+
         except BaseException as error:
+
+            if isinstance(error, KeyboardInterrupt):
+                raise KeyboardInterrupt
+
             result = {'error': '{}:{}'.format(type(error).__name__, error)}
             print(result)
 
