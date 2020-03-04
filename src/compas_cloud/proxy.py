@@ -167,8 +167,7 @@ class Proxy():
             print("Starting new cloud server with prompt console at {}:{}".format(self.host, self.port))
             args[0] = compas._os.select_python('python')
             args = " ".join(args)
-            os.system('start /B '+args)
-
+            os.system('start '+args)
         # import sys
         # self._process = Popen(args, stdout=sys.stdout, stderr=sys.stderr, env=env)
 
