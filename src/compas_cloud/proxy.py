@@ -185,16 +185,19 @@ class Proxy():
         while count:
             try:
                 time.sleep(0.2)
+                client = Client(self.host, self.port)
+            except Exception as e:
+
+                # stop trying if the subprocess is not running anymore
                 if self.background:
                     if self._process.poll() is not None:
                         out, err =  self._process.communicate()
                         if out:
                             print(out.decode())
                         if err:
-                            print(err.decode())
-                        raise RuntimeError('subprocess terminated')
-                client = Client(self.host, self.port)
-            except Exception as e:
+                            raise RuntimeError(err.decode())
+                        raise RuntimeError('subprocess terminated, reason unknown')
+
                 count -= 1
                 print(e)
                 print("\n\n    {} attempts left.".format(count))
