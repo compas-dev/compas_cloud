@@ -8,6 +8,8 @@ from compas_cloud import Sessions
 from threading import Thread
 from multiprocessing import Queue
 import time
+import sys
+import traceback
 
 
 class CompasServerProtocol(WebSocketServerProtocol):
@@ -165,9 +167,10 @@ class CompasServerProtocol(WebSocketServerProtocol):
 
             if isinstance(error, KeyboardInterrupt):
                 raise KeyboardInterrupt
-
-            result = {'error': '{}:{}'.format(type(error).__name__, error)}
-            print(result)
+            
+            exc_type, exc_value, exc_tb = sys.exc_info()
+            result = {'error': traceback.format_exception(exc_type, exc_value, exc_tb)}
+            print("".join(result['error']))
 
         istring = json.dumps(result, cls=DataEncoder)
         return istring
