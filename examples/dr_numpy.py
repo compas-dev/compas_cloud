@@ -39,21 +39,21 @@ mesh.update_default_edge_attributes(dea)
 for key, attr in mesh.vertices(True):
     attr['is_fixed'] = mesh.vertex_degree(key) == 2
 
-for u, v, attr in mesh.edges(True):
+for (u, v), attr in mesh.edges(True):
     attr['qpre'] = 1.0 * random.randint(1, 7)
 
 k_i = mesh.key_index()
 
-vertices = mesh.get_vertices_attributes(('x', 'y', 'z'))
+vertices = mesh.vertices_attributes(('x', 'y', 'z'))
 edges    = [(k_i[u], k_i[v]) for u, v in mesh.edges()]
 fixed    = [k_i[key] for key in mesh.vertices_where({'is_fixed': True})]
-loads    = mesh.get_vertices_attributes(('px', 'py', 'pz'))
-qpre     = mesh.get_edges_attribute('qpre')
-fpre     = mesh.get_edges_attribute('fpre')
-lpre     = mesh.get_edges_attribute('lpre')
-linit    = mesh.get_edges_attribute('linit')
-E        = mesh.get_edges_attribute('E')
-radius   = mesh.get_edges_attribute('radius')
+loads    = mesh.vertices_attributes(('px', 'py', 'pz'))
+qpre     = mesh.edges_attribute('qpre')
+fpre     = mesh.edges_attribute('fpre')
+lpre     = mesh.edges_attribute('lpre')
+linit    = mesh.edges_attribute('linit')
+E        = mesh.edges_attribute('E')
+radius   = mesh.edges_attribute('radius')
 
 lines = []
 for u, v in mesh.edges():
@@ -93,11 +93,15 @@ xyz, q, f, l, r = dr_numpy(vertices, edges, fixed, loads,
 
 
 
-for index, (u, v, attr) in enumerate(mesh.edges(True)):
-    attr['f'] = f[index][0]
-    attr['l'] = l[index][0]
+for index, ((u, v), attr) in enumerate(mesh.edges(True)):
+    mesh.edge_attribute((u,v),'f',f[index][0])
+    mesh.edge_attribute((u,v),'l',l[index][0])
 
-fmax = max(mesh.get_edges_attribute('f'))
+for index, ((u, v), attr) in enumerate(mesh.edges(True)):
+    print(mesh.edge_attribute((u,v),'f'))
+
+
+fmax = max(mesh.edges_attribute('f'))
 
 plotter.clear_vertices()
 plotter.clear_edges()
@@ -107,9 +111,9 @@ plotter.draw_vertices(
 )
 
 plotter.draw_edges(
-    text={(u, v): '{:.0f}'.format(attr['f']) for u, v, attr in mesh.edges(True)},
-    color={(u, v): i_to_rgb(attr['f'] / fmax) for u, v, attr in mesh.edges(True)},
-    width={(u, v): 10 * attr['f'] / fmax for u, v, attr in mesh.edges(True)}
+    text={(u, v): '{:.0f}'.format(mesh.edge_attribute((u,v),'f')) for (u, v) in mesh.edges()},
+    color={(u, v): i_to_rgb(mesh.edge_attribute((u,v),'f') / fmax) for (u, v) in mesh.edges()},
+    width={(u, v): 10 * mesh.edge_attribute((u,v),'f') / fmax for (u, v) in mesh.edges()}
 )
 
 plotter.update(pause=1.0)
