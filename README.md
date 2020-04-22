@@ -101,7 +101,7 @@ python examples/dr_numpy.py
 run `examples/example_numpy.py` with Rhino
 
 
-## Using Sessions
+## Using Sessions (Currently only work with MacOS/Linux)
 `Compas_cloud.Sessions` is a task-manager class that helps to execute a batch of long-lasting tasks such as FEA and DEM simulations. It creates a queue of tasks and a collection of workers to execute the tasks in parallel and save the program logs into each corresponding locations. `Sessions` can be run either locally or in a background server through `Proxy`.
 
 ### Examples
