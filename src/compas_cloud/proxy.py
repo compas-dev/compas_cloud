@@ -24,6 +24,26 @@ else:
 
 __all__ = ['Proxy']
 
+from functools import wraps
+def retry_if_exception(ex, max_retries, wait = 0):
+    def outer(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            assert max_retries > 0
+            x = max_retries
+            e = RuntimeError("unknown")
+            while x:
+                try:
+                    return func(*args, **kwargs)
+                except ex as error:
+                    print('proxy call faild, trying time left:',x)
+                    x -= 1
+                    time.sleep(wait)
+                    e = error
+            raise e
+        return wrapper
+    return outer
+
 
 class Proxy():
     """Proxy is the interface between the user and a websocket client which communicates to websoket server in background.
@@ -72,7 +92,14 @@ class Proxy():
 
     def package(self, package, cache=False):
         """returns wrapper of function that will be executed on server side"""
-        return lambda *args, **kwargs: self.run(package, cache, *args, **kwargs)
+
+        @retry_if_exception(Exception, 5, wait = 0.5)
+        def run_package(*args, **kwargs):
+            return self.run(package, cache, *args, **kwargs)
+        
+        return run_package
+
+        # return lambda *args, **kwargs: self.run(package, cache, *args, **kwargs)
 
     def send(self, data):
         """encode given data before sending to remote server then parse returned result"""
