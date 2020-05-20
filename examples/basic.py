@@ -3,7 +3,7 @@ from compas.geometry import Translation
 
 
 proxy = Proxy()
-transform_points_numpy = proxy.package('compas.geometry.transform_points_numpy')
+transform_points_numpy = proxy.function('compas.geometry.transform_points_numpy')
 # create a proxy funciton
 
 pts = [[0,0,0], [1,0,0]]

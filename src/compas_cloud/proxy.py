@@ -36,7 +36,7 @@ def retry_if_exception(ex, max_retries, wait = 0):
                 try:
                     return func(*args, **kwargs)
                 except ex as error:
-                    print('proxy call faild, trying time left:',x)
+                    print('proxy call failed, trying time left:',x)
                     x -= 1
                     time.sleep(wait)
                     e = error
@@ -90,16 +90,18 @@ class Proxy():
             self.client = self.start_server()
         self.callbacks = {}
 
-    def package(self, package, cache=False):
+    def package(self, function, cache=False):
+        raise RuntimeError("Proxy.package() has been deprecated, please use Proxy.function() instead.")
+        
+
+    def function(self, function, cache=False):
         """returns wrapper of function that will be executed on server side"""
 
         @retry_if_exception(Exception, 5, wait = 0.5)
-        def run_package(*args, **kwargs):
-            return self.run(package, cache, *args, **kwargs)
+        def run_function(*args, **kwargs):
+            return self.run(function, cache, *args, **kwargs)
         
-        return run_package
-
-        # return lambda *args, **kwargs: self.run(package, cache, *args, **kwargs)
+        return run_function
 
     def send(self, data):
         """encode given data before sending to remote server then parse returned result"""
