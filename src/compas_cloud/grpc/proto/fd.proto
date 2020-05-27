@@ -1,0 +1,23 @@
+// echo.proto
+syntax = "proto3";
+package compas_cloud;
+
+message FdRequest {
+  bytes vertices = 1;
+  bytes edges = 2;
+  bytes fixed = 3;
+  bytes q = 4;
+  bytes loads = 5;
+}
+
+message FdReply {
+  bytes xyz = 1;
+  bytes q = 2;
+  bytes f = 3;
+  bytes l = 4;
+  bytes r = 5;
+}
+
+service Fd {
+  rpc Reply (FdRequest) returns (FdReply) {}
+}
