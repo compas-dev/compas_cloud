@@ -81,7 +81,7 @@ class Proxy():
 
     """
 
-    def __init__(self, host='127.0.0.1', port=9000, background=True):
+    def __init__(self, host='127.0.0.1', port=9000, background=True, errorHandler=None):
         """init function that starts a remote server then assigns corresponding client(websockets/.net) to the proxy"""
         self._python = compas._os.select_python(None)
         self.host = host
@@ -91,6 +91,7 @@ class Proxy():
         if not self.client:
             self.client = self.start_server()
         self.callbacks = {}
+        self.errorHandler = errorHandler
 
     def package(self, function, cache=False):
         raise RuntimeError("Proxy.package() has been deprecated, please use Proxy.function() instead.")
@@ -99,11 +100,19 @@ class Proxy():
     def function(self, function, cache=False):
         """returns wrapper of function that will be executed on server side"""
 
-        @retry_if_exception(Exception, 5, wait = 0.5)
-        def run_function(*args, **kwargs):
-            return self.run(function, cache, *args, **kwargs)
-        
-        return run_function
+        if self.errorHandler:
+            @self.errorHandler
+            @retry_if_exception(Exception, 5, wait = 0.5)
+            def run_function(*args, **kwargs):
+                return self.run(function, cache, *args, **kwargs)
+
+            return run_function
+        else:
+            @retry_if_exception(Exception, 5, wait = 0.5)
+            def run_function(*args, **kwargs):
+                return self.run(function, cache, *args, **kwargs)
+            
+            return run_function
 
     def send(self, data):
         """encode given data before sending to remote server then parse returned result"""
