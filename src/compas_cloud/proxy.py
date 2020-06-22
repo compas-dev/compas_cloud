@@ -31,7 +31,7 @@ def retry_if_exception(ex, max_retries, wait = 0):
         def wrapper(*args, **kwargs):
             assert max_retries > 0
             x = max_retries
-            e = RuntimeError("unknown")
+            e = ProxyError("unknown")
             while x:
                 try:
                     return func(*args, **kwargs)
@@ -44,6 +44,8 @@ def retry_if_exception(ex, max_retries, wait = 0):
         return wrapper
     return outer
 
+class ProxyError(Exception):
+    pass
 
 class Proxy():
     """Proxy is the interface between the user and a websocket client which communicates to websoket server in background.
@@ -145,7 +147,7 @@ class Proxy():
                  'args': args, 'kwargs': kwargs}
         result = self.send(idict)
         if 'error' in result:
-            raise Exception(result['error'])
+            raise ProxyError("".join(result['error']))
         return result
 
     def Sessions(self, *args, **kwargs):
