@@ -6,7 +6,7 @@ from compas.utilities import i_to_rgb
 """ instead of `from compas.numerical import dr_numpy` use following code to import module"""
 from compas_cloud import Proxy
 p = Proxy()
-dr_numpy = p.package('compas.numerical.dr_numpy')
+dr_numpy = p.function('compas.numerical.dr_numpy')
 
 dva = {
     'is_fixed': False,
