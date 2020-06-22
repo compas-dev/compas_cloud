@@ -210,7 +210,6 @@ class Proxy():
         # import sys
         # self._process = Popen(args, stdout=sys.stdout, stderr=sys.stderr, env=env)
 
-
         success = False
         count = 20
         while count:
@@ -262,6 +261,7 @@ class Proxy():
         """check if server connection is good"""
         return self.send({'control': 'check'})
 
+
 class Sessions_client():
 
     def __init__(self, proxy, *args, **kwargs):
@@ -284,6 +284,7 @@ class Sessions_client():
 
     def terminate(self):
         pass
+
 
 if __name__ == "__main__":
     pass
