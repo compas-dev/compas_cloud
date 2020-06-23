@@ -18,6 +18,7 @@ from subprocess import PIPE
 
 if compas.IPY:
     from .client_net import Client_Net as Client
+    import Rhino
 else:
     from .client_websockets import Client_Websokets as Client
 
@@ -33,6 +34,8 @@ def retry_if_exception(ex, max_retries, wait = 0):
             x = max_retries
             e = ProxyError("unknown")
             while x:
+                if compas.IPY:
+                    Rhino.RhinoApp.Wait()
                 try:
                     return func(*args, **kwargs)
                 except ex as error:
@@ -222,6 +225,8 @@ class Proxy():
         success = False
         count = 20
         while count:
+            if compas.IPY:
+                    Rhino.RhinoApp.Wait()
             try:
                 time.sleep(0.2)
                 client = Client(self.host, self.port)
