@@ -32,22 +32,25 @@ def retry_if_exception(ex, max_retries, wait = 0):
         def wrapper(*args, **kwargs):
             assert max_retries > 0
             x = max_retries
-            e = ProxyError("unknown")
+            e = RuntimeError("unknown")
             while x:
                 if compas.IPY:
                     Rhino.RhinoApp.Wait()
                 try:
                     return func(*args, **kwargs)
                 except ex as error:
+                    e = error
+                    print(e)
+                    if isinstance(e, ServerSideError):
+                        break
                     print('proxy call failed, trying time left:',x)
                     x -= 1
                     time.sleep(wait)
-                    e = error
             raise e
         return wrapper
     return outer
 
-class ProxyError(Exception):
+class ServerSideError(Exception):
     pass
 
 class Proxy():
@@ -159,7 +162,7 @@ class Proxy():
                  'args': args, 'kwargs': kwargs}
         result = self.send(idict)
         if 'error' in result:
-            raise ProxyError("".join(result['error']))
+            raise ServerSideError("".join(result['error']))
         return result
 
     def Sessions(self, *args, **kwargs):
