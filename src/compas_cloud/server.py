@@ -72,7 +72,7 @@ class CompasServerProtocol(WebSocketServerProtocol):
         else:
             result = function(*data['args'], **data['kwargs'])
         t = time.time()-start
-        print('finished in: %fs'%t)
+        print('finished in: {}s'.format(t))
         return result
 
     def get(self, data):
