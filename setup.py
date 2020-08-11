@@ -25,11 +25,12 @@ optional_requirements = {}
 
 setup(
     name='compas_cloud',
-    version='0.1.1',
+    version='0.0.1',
     description='COMPAS package for cloud computing',
     long_description=long_description,
+    long_description_content_type='text/markdown',
     license='MIT',
-    # url='https://github.com/BlockResearchGroup/compas_cloud',
+    url='https://github.com/BlockResearchGroup/compas_cloud',
     author='Li Chen',
     author_email='li.chen@arch.ethz.ch',
     classifiers=[
