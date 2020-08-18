@@ -11,6 +11,7 @@ import time
 import sys
 import traceback
 
+CONNECTIONS = {'uuid1234': None}
 
 class CompasServerProtocol(WebSocketServerProtocol):
     """The CompasServerProtocol defines the behaviour of compas cloud server"""
@@ -29,6 +30,10 @@ class CompasServerProtocol(WebSocketServerProtocol):
         """process the income messages"""
         result = self.process(payload)
         self.sendMessage(result.encode(), isBinary)
+
+    def send(self, payload):
+        ostring = json.dumps(payload, cls=DataEncoder)
+        self.sendMessage(ostring.encode(), False)
 
     def callback(self, _id, *args, **kwargs):
         """send the arguments of callback functions to client side"""
@@ -139,6 +144,21 @@ class CompasServerProtocol(WebSocketServerProtocol):
                 self.sessions.terminate()
                 self.sessions = None
 
+    def handle_viewer(self, data):
+        viewer_msg = data['viewer']
+
+        # From viewer
+        if 'register' in viewer_msg:
+            CONNECTIONS[viewer_msg['register']] = self
+            return "Registered"
+
+        # From client
+        if 'draw' in viewer_msg:
+            CONNECTIONS[viewer_msg['draw']['uuid']].send(
+                {"draw": viewer_msg['draw']['data']}
+            )
+            return "data sent to viewer"
+
     def process(self, data):
         """process received data according to its content"""
         data = json.loads(data, cls=DataDecoder)
@@ -162,6 +182,9 @@ class CompasServerProtocol(WebSocketServerProtocol):
 
             if 'control' in data:
                 result = self.control(data)
+
+            if 'viewer' in data:
+                result = self.handle_viewer(data)
 
         except BaseException as error:
 
@@ -196,7 +219,10 @@ if __name__ == '__main__':
     try:
         loop.run_forever()
     except KeyboardInterrupt:
-        pass
+        print("shuting down by keyboard")
+        server.close()
+        loop.close()
+        exit(1)
     finally:
         print("shuting down server")
         server.close()
