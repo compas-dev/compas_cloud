@@ -1,5 +1,6 @@
 from autobahn.asyncio.websocket import WebSocketServerProtocol
 
+import compas
 from compas.utilities import DataEncoder
 from compas.utilities import DataDecoder
 import importlib
@@ -10,6 +11,7 @@ from multiprocessing import Queue
 import time
 import sys
 import traceback
+import pkg_resources
 
 
 class CompasServerProtocol(WebSocketServerProtocol):
@@ -163,6 +165,9 @@ class CompasServerProtocol(WebSocketServerProtocol):
             if 'control' in data:
                 result = self.control(data)
 
+            if 'version' in data:
+                result = self.version()
+
         except BaseException as error:
 
             if isinstance(error, KeyboardInterrupt):
@@ -174,6 +179,18 @@ class CompasServerProtocol(WebSocketServerProtocol):
 
         istring = json.dumps(result, cls=DataEncoder)
         return istring
+
+    def version(self):
+
+        working_set = pkg_resources.working_set
+        packages = set([p.project_name for p in working_set]) - set(['COMPAS'])
+        compas_pkgs = [p for p in packages if p.lower().startswith('compas')]
+
+        return {
+            "COMPAS": compas.__version__,
+            "Python": sys.version,
+            "Extensions": compas_pkgs
+        }
 
 
 if __name__ == '__main__':

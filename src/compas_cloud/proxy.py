@@ -168,6 +168,11 @@ class Proxy():
     def Sessions(self, *args, **kwargs):
         return Sessions_client(self, *args, **kwargs)
 
+    def version(self):
+        """get version info of compas cloud server side packages"""
+        idict = {'version': True}
+        return self.send(idict)
+
     def get(self, cached_object):
         """get content of a cached object stored remotely"""
         idict = {'get': cached_object['cached']}
