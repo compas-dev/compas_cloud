@@ -1,10 +1,10 @@
 import asyncio
 import websockets
 
-__all__ = ['Client_Websokets']
+__all__ = ['Client_Websockets']
 
 
-class Client_Websokets():
+class Client_Websockets():
     """A Websoket client using webseckts and asyncio that works in a simple synchronous fashion
 
     Parameters
