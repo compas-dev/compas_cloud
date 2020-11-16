@@ -34,7 +34,7 @@ class Sessions_server(Sessions):
 
 
 
-class Server_Websokets():
+class Server_Websockets():
 
     def __init__(self, host='127.0.0.1', port=9000):
         """init the client, wait until it successfully connected to server"""
@@ -224,4 +224,4 @@ class Server_Websokets():
         return istring
 
 # if __name__ == "main":
-Server_Websokets()
+Server_Websockets()

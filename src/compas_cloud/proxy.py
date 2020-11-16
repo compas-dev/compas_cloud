@@ -20,7 +20,7 @@ if compas.IPY:
     from .client_net import Client_Net as Client
     import Rhino
 else:
-    from .client_websockets import Client_Websokets as Client
+    from .client_websockets import Client_Websockets as Client
 
 
 __all__ = ['Proxy']
