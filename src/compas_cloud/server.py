@@ -205,10 +205,14 @@ if __name__ == '__main__':
     factory = WebSocketServerFactory()
     factory.protocol = CompasServerProtocol
 
+    ip = '127.0.0.1'
+    port = 9000
+
     loop = asyncio.get_event_loop()
     coro = loop.create_server(factory, '127.0.0.1', 9000)
     server = loop.run_until_complete(coro)
     print("starting compas_cloud server")
+    print("Listenning at %s:%s" % (ip, port))
 
     try:
         loop.run_forever()
