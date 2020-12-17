@@ -11,6 +11,7 @@ import functools
 
 from multiprocessing import Queue, Process
 
+
 class Sessions_server(Sessions):
 
     socket_message = Queue()
@@ -84,15 +85,11 @@ class Server_Websockets():
         print('started server')
         self.loop.run_forever()
 
-
-
     def callback(self, _id, *args, **kwargs):
         """send the arguments of callback functions to client side"""
         data = {'callback': {'id': _id, 'args': args, 'kwargs': kwargs}}
         istring = json.dumps(data, cls=DataEncoder)
         self.messages_to_send.put(istring)
-
-
 
     def load_cached(self, data):
         """detect and load cached data or callback functions in arguments"""
@@ -222,6 +219,7 @@ class Server_Websockets():
 
         istring = json.dumps(result, cls=DataEncoder)
         return istring
+
 
 # if __name__ == "main":
 Server_Websockets()
