@@ -25,6 +25,7 @@ else:
 
 __all__ = ['Proxy']
 
+
 from functools import wraps
 def retry_if_exception(ex, max_retries, wait = 0):
     def outer(func):
@@ -50,8 +51,10 @@ def retry_if_exception(ex, max_retries, wait = 0):
         return wrapper
     return outer
 
+
 class ServerSideError(Exception):
     pass
+
 
 class Proxy():
     """Proxy is the interface between the user and a websocket client which communicates to websoket server in background.
@@ -101,7 +104,6 @@ class Proxy():
 
     def package(self, function, cache=False):
         raise RuntimeError("Proxy.package() has been deprecated, please use Proxy.function() instead.")
-        
 
     def function(self, function, cache=False):
         """returns wrapper of function that will be executed on server side"""
@@ -226,15 +228,18 @@ class Proxy():
             print("Starting new cloud server with prompt console at {}:{}".format(self.host, self.port))
             args[0] = compas._os.select_python('python')
             args = " ".join(args)
-            os.system('start '+args)
-        # import sys
-        # self._process = Popen(args, stdout=sys.stdout, stderr=sys.stderr, env=env)
+            if compas.WINDOWS:
+                os.system('start ' + args)
+            # elif compas.OSX or compas.MONO:
+            #     os.system("osascript -e 'tell application \"terminal\" to do script \"{}\"'".format(args))
+            else:
+                raise NotImplementedError
 
         success = False
         count = 20
         while count:
             if compas.IPY:
-                    Rhino.RhinoApp.Wait()
+                Rhino.RhinoApp.Wait()
             try:
                 time.sleep(0.2)
                 client = Client(self.host, self.port)
