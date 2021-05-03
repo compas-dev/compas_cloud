@@ -28,6 +28,7 @@ jobs:
           test_compas: true
 
   Release:
+    needs: Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -43,6 +44,7 @@ jobs:
           prerelease: false
 
   Publish:
+    needs: Release
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
