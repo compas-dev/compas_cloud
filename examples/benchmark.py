@@ -7,7 +7,7 @@ import time
 
 
 pts = [[i, 0, 0] for i in range(0, 10000)]
-T = Translation([100, 0, 0]).matrix
+T = Translation.from_vector([100, 0, 0])
 
 start = time.time()
 
@@ -29,7 +29,7 @@ transform_points_numpy = proxy.function('compas.geometry.transform_points_numpy'
 
 
 pts = [[i, 0, 0] for i in range(0, 10000)]
-T = Translation([100, 0, 0]).matrix
+T = Translation.from_vector([100, 0, 0])
 
 start = time.time()
 

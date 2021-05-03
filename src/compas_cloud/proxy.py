@@ -14,7 +14,6 @@ import time
 import inspect
 
 from subprocess import Popen
-from subprocess import PIPE
 from functools import wraps
 
 if compas.IPY:
@@ -223,7 +222,7 @@ class Proxy():
 
         if self.background:
             print("Starting new cloud server in background at {}:{}".format(self.host, self.port))
-            self._process = Popen(args, stdout=PIPE, stderr=PIPE, env=env)
+            self._process = Popen(args, env=env)
         else:
             print("Starting new cloud server with prompt console at {}:{}".format(self.host, self.port))
             args[0] = compas._os.select_python('python')
