@@ -1,5 +1,6 @@
 from compas_cloud import Proxy
 from compas.geometry import Translation
+from compas.geometry import transform_points
 from compas.geometry import allclose
 import time
 import pytest
@@ -21,6 +22,44 @@ def test_basic(proxy):
     T = Translation.from_vector([100, 0, 0])
     result = transform_points_numpy(pts, T)
     assert allclose(result, [[100, 0, 0], [101, 0, 0]])
+
+
+def test_benchmark(proxy):
+
+    pts = [[i, 0, 0] for i in range(0, 1000)]
+    T = Translation.from_vector([100, 0, 0])
+
+    start = time.time()
+
+    for i in range(0, 100):
+        pts = transform_points(pts, T)
+
+    result1 = pts
+
+    end = time.time()
+    print('transform 1k points 100 times (native python): ', end - start, 's')
+
+    transform_points_numpy = proxy.function('compas.geometry.transform_points_numpy', cache=True)
+
+
+    pts = [[i, 0, 0] for i in range(0, 1000)]
+    T = Translation.from_vector([100, 0, 0])
+
+    start = time.time()
+
+    pts = proxy.cache(pts)
+
+    for i in range(0, 100):
+        print(i)
+        pts = transform_points_numpy(pts, T)
+
+    result2 = proxy.get(pts)
+
+    end = time.time()
+    print('transform 1k points 100 times (cloud numpy): ', end - start, 's')
+
+    assert result1 == result2
+
 
 
 def test_cached(proxy):

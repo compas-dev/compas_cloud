@@ -11,7 +11,7 @@ T = Translation.from_vector([100, 0, 0])
 
 start = time.time()
 
-for i in range(0, 50):
+for i in range(0, 100):
     pts = transform_points(pts, T)
 
 result1 = pts
@@ -35,8 +35,7 @@ start = time.time()
 
 pts = proxy.cache(pts)
 
-for i in range(0, 50):
-    print(i)
+for i in range(0, 100):
     pts = transform_points_numpy(pts, T)
 
 result2 = proxy.get(pts)
