@@ -62,6 +62,8 @@ class CompasServerProtocol(WebSocketServerProtocol):
         function = getattr(module, names[-1])
 
         start = time.time()
+        print(package)
+        print(function)
         print('running:', package)
         self.load_cached(data)
 
