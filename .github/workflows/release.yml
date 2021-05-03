@@ -1,108 +1,33 @@
-name: Release
-
 on:
   push:
     tags:
       - 'v*'
 
+name: Create Release
+
 jobs:
-  Installer:
-    name: Release-Windows
-    runs-on: "windows-latest"
+  Release:
+    runs-on: ubuntu-latest
     steps:
-      - name: Get the tag version
-        uses: dawidd6/action-get-tag@v1
-        id: tagName
-
-      - uses: actions/checkout@v2
-
-      - uses: actions/setup-node@v1
-
-      - name: build electron front page
-        shell: PowerShell
-        run: |
-          cd src/compas_ags/web
-          npm install
-          npm run build -- ${{ steps.tagName.outputs.tag }}
-      
-      - uses: conda-incubator/setup-miniconda@v2.0.0
-        with:
-          miniconda-version: "latest"
-          activate-environment: ags
-          python-version: 3.7
-      
-      - name: conda-install
-        shell: PowerShell
-        run: |
-          conda install conda-pack cython -y
-
-      - name: ags-install
-        shell: PowerShell
-        run: |
-          python ui/Rhino/ags/dev/rui.py
-          Set-Content -Path MANIFEST.in -Value (get-content -Path MANIFEST.in | Select-String -Pattern 'prune src/compas_ags/web' -NotMatch)
-          pip install .
-
-      - name: ags-pack
-        run: |
-          python scripts/pack.py --version ${{ steps.tagName.outputs.tag }}
-
-      - name: Check out compas_installer
-        uses: actions/checkout@master
-        with:
-          repository: BlockResearchGroup/compas_installer
-          ref: ags
-          path: compas_installer
-      
-      - name: wrap installer
-        run: |
-          cd compas_installer
-          npm install
-          copy ../dist/AGS_${{ steps.tagName.outputs.tag }}.zip src/plugins/AGS.zip
-          npm run build
-
+      - name: Checkout code
+        uses: actions/checkout@v2
       - name: Create Release
-        id: create_release
         uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           draft: false
           prerelease: false
 
-      - name: Upload Release Asset
-        id: upload-release-asset 
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} 
-          asset_path: compas_installer/dist/rhinoGS Setup 0.0.1.exe
-          asset_name: rhinoGS_${{ steps.tagName.outputs.tag }}.exe
-          asset_content_type: application/octet-stream
-
   Publish:
-
-    needs: Installer
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v2
+    - uses: actions/setup-python@v2
       with:
         python-version: '3.x'
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install setuptools wheel twine
-    - name: Build and publish
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI }}
-      run: |
-        python setup.py sdist bdist_wheel
-        twine upload --verbose dist/*
+    - uses: compas-dev/compas-actions.publish@main
+      with:
+        token: ${{ secrets.PYPI }}
