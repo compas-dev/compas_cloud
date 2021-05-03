@@ -15,6 +15,7 @@ import inspect
 
 from subprocess import Popen
 from subprocess import PIPE
+from functools import wraps
 
 if compas.IPY:
     from .client_net import Client_Net as Client
@@ -25,8 +26,8 @@ else:
 
 __all__ = ['Proxy']
 
-from functools import wraps
-def retry_if_exception(ex, max_retries, wait = 0):
+
+def retry_if_exception(ex, max_retries, wait=0):
     def outer(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -43,15 +44,17 @@ def retry_if_exception(ex, max_retries, wait = 0):
                     print(e)
                     if isinstance(e, ServerSideError):
                         break
-                    print('proxy call failed, trying time left:',x)
+                    print('proxy call failed, trying time left:', x)
                     x -= 1
                     time.sleep(wait)
             raise e
         return wrapper
     return outer
 
+
 class ServerSideError(Exception):
     pass
+
 
 class Proxy():
     """Proxy is the interface between the user and a websocket client which communicates to websoket server in background.
@@ -101,23 +104,22 @@ class Proxy():
 
     def package(self, function, cache=False):
         raise RuntimeError("Proxy.package() has been deprecated, please use Proxy.function() instead.")
-        
 
     def function(self, function, cache=False):
         """returns wrapper of function that will be executed on server side"""
 
         if self.errorHandler:
             @self.errorHandler
-            @retry_if_exception(Exception, 5, wait = 0.5)
+            @retry_if_exception(Exception, 5, wait=0.5)
             def run_function(*args, **kwargs):
                 return self.run(function, cache, *args, **kwargs)
 
             return run_function
         else:
-            @retry_if_exception(Exception, 5, wait = 0.5)
+            @retry_if_exception(Exception, 5, wait=0.5)
             def run_function(*args, **kwargs):
                 return self.run(function, cache, *args, **kwargs)
-            
+
             return run_function
 
     def send(self, data):
@@ -125,7 +127,7 @@ class Proxy():
         if not self.client:
             print("There is no connected client, try to restart proxy")
             return
-        
+
         istring = json.dumps(data, cls=DataEncoder)
         self.client.send(istring)
 
@@ -234,7 +236,7 @@ class Proxy():
         count = 20
         while count:
             if compas.IPY:
-                    Rhino.RhinoApp.Wait()
+                Rhino.RhinoApp.Wait()
             try:
                 time.sleep(0.2)
                 client = Client(self.host, self.port)
@@ -243,7 +245,7 @@ class Proxy():
                 # stop trying if the subprocess is not running anymore
                 if self.background:
                     if self._process.poll() is not None:
-                        out, err =  self._process.communicate()
+                        out, err = self._process.communicate()
                         if out:
                             print(out.decode())
                         if err:

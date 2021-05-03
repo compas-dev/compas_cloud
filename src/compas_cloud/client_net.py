@@ -2,24 +2,19 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import logging
 import math
 
 from System import Array
 from System import ArraySegment
 from System import Byte
-from System import Uri
 from System import UriBuilder
 from System.Net.WebSockets import ClientWebSocket
 from System.Net.WebSockets import WebSocketCloseStatus
 from System.Net.WebSockets import WebSocketMessageType
-from System.Net.WebSockets import WebSocketReceiveResult
 from System.Net.WebSockets import WebSocketState
 from System.Text import Encoding
 from System.Threading import CancellationTokenSource
-from System.Threading import SemaphoreSlim
 
-import time
 
 SEND_CHUNK_SIZE = 1024
 RECEIVE_CHUNK_SIZE = 1024

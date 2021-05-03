@@ -16,6 +16,7 @@ try:
 except ImportError:
     from io import StringIO
 
+
 class CapturedText(object):
     log_path = None
 
@@ -25,7 +26,6 @@ def captured(name=None, log_path=None):
 
     stdout = sys.stdout
     stderr = sys.stderr
-
 
     if log_path:
         sys.stdout = sys.stderr = open(log_path, "w", 1)
@@ -43,7 +43,6 @@ def captured(name=None, log_path=None):
 
     sys.stdout = stdout
     sys.stderr = stderr
-
 
 
 TASK_FINISHED = "____FINISHED____"
@@ -80,6 +79,7 @@ class Sessions():
         s.listen()
 
     """
+
     def __init__(self, log_path=None, worker_num=None, socket=None):
         """init function"""
         self.counter = 0
@@ -232,7 +232,6 @@ if __name__ == '__main__':
     s.add_task(func, 3)
     s.add_task(func, 4)
     s.add_task(func, 5)
-
 
     s.start()
     s.listen()

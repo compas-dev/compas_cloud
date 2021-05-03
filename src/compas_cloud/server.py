@@ -6,8 +6,6 @@ from compas.utilities import DataDecoder
 import importlib
 import json
 from compas_cloud import Sessions
-from threading import Thread
-from multiprocessing import Queue
 import time
 import sys
 import traceback
@@ -106,7 +104,7 @@ class CompasServerProtocol(WebSocketServerProtocol):
         if command == 'check':
             print('check from client')
             return {'status': "I'm good"}
-            
+
         raise ValueError("Unrecognised control command")
 
     def control_sessions(self, data):
@@ -172,7 +170,7 @@ class CompasServerProtocol(WebSocketServerProtocol):
 
             if isinstance(error, KeyboardInterrupt):
                 raise KeyboardInterrupt
-            
+
             exc_type, exc_value, exc_tb = sys.exc_info()
             result = {'error': traceback.format_exception(exc_type, exc_value, exc_tb)}
             print("".join(result['error']))

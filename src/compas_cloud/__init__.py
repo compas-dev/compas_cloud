@@ -4,10 +4,10 @@ from __future__ import print_function
 
 import compas
 
-from .proxy import Proxy
+from .proxy import Proxy # noqa F401
 
 if not compas.IPY:
-    from .sessions import Sessions
+    from .sessions import Sessions # noqa F401
 
 __version__ = "0.1.1"
 
