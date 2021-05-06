@@ -25,7 +25,7 @@ optional_requirements = {}
 
 setup(
     name='compas_cloud',
-    version='0.1.2',
+    version='0.1.3rc0',
     description='COMPAS package for cloud computing',
     long_description=long_description,
     long_description_content_type='text/markdown',
