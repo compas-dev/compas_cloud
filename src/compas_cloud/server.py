@@ -193,7 +193,6 @@ class CompasServerProtocol(WebSocketServerProtocol):
 
 if __name__ == '__main__':
 
-    
     import argparse
 
     try:
