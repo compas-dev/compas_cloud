@@ -193,6 +193,9 @@ class CompasServerProtocol(WebSocketServerProtocol):
 
 if __name__ == '__main__':
 
+    
+    import argparse
+
     try:
         import asyncio
     except ImportError:
@@ -203,11 +206,15 @@ if __name__ == '__main__':
     factory = WebSocketServerFactory()
     factory.protocol = CompasServerProtocol
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--port", default=9000)
+    args = parser.parse_args()
+
     ip = '127.0.0.1'
-    port = 9000
+    port = int(args.port)
 
     loop = asyncio.get_event_loop()
-    coro = loop.create_server(factory, '127.0.0.1', 9000)
+    coro = loop.create_server(factory, '127.0.0.1', port)
     server = loop.run_until_complete(coro)
     print("starting compas_cloud server")
     print("Listenning at %s:%s" % (ip, port))

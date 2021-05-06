@@ -218,7 +218,7 @@ class Proxy():
         """use Popen to start a remote server in background"""
         env = compas._os.prepare_environment()
 
-        args = [self._python, '-m', 'compas_cloud.server', str(self.port)]
+        args = [self._python, '-m', 'compas_cloud.server', '--port', str(self.port)]
 
         if self.background:
             print("Starting new cloud server in background at {}:{}".format(self.host, self.port))

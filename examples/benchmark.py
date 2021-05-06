@@ -24,7 +24,7 @@ print('transform 10k points 100 times (native python): ', end - start, 's')
 # USING CLOUD WITH CACHE
 
 from compas_cloud import Proxy
-proxy = Proxy()
+proxy = Proxy(port=9001)
 transform_points_numpy = proxy.function('compas.geometry.transform_points_numpy', cache=True)
 
 
