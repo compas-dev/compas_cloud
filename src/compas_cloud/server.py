@@ -16,6 +16,7 @@ class CompasServerProtocol(WebSocketServerProtocol):
     """The CompasServerProtocol defines the behaviour of compas cloud server"""
     cached = {}
     sessions = None
+    server_type = "NORMAL"
 
     def onConnect(self, request):
         """print client info on connection"""
@@ -24,6 +25,8 @@ class CompasServerProtocol(WebSocketServerProtocol):
     def onClose(self, wasClean, code, reason):
         """print reason on connection closes"""
         print("WebSocket connection closed: {}".format(reason))
+        if self.server_type == "ONCE":
+            raise KeyboardInterrupt
 
     def onMessage(self, payload, isBinary):
         """process the income messages"""
@@ -104,6 +107,10 @@ class CompasServerProtocol(WebSocketServerProtocol):
         if command == 'check':
             print('check from client')
             return {'status': "I'm good"}
+        if command == 'once':
+            self.server_type = "ONCE"
+            print('Setting Server type to ONCE, server will be closed once this client disconnect.')
+            return {'status': "server type set as ONCE"}
 
         raise ValueError("Unrecognised control command")
 

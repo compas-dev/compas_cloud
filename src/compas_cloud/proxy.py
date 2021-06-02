@@ -89,7 +89,7 @@ class Proxy():
 
     """
 
-    def __init__(self, host='127.0.0.1', port=9000, background=True, errorHandler=None):
+    def __init__(self, host='127.0.0.1', port=9000, background=True, errorHandler=None, once=True):
         """init function that starts a remote server then assigns corresponding client(websockets/.net) to the proxy"""
         self._python = compas._os.select_python(None)
         self.host = host
@@ -98,6 +98,11 @@ class Proxy():
         self.client = self.try_reconnect()
         if not self.client:
             self.client = self.start_server()
+            if once:
+                print("Server will shut down once program finish")
+                self.once()
+            else:
+                print("Server will keep running after progrom finish")
         self.callbacks = {}
         self.errorHandler = errorHandler
 
@@ -283,6 +288,10 @@ class Proxy():
     def check(self):
         """check if server connection is good"""
         return self.send({'control': 'check'})
+
+    def once(self):
+        """Set the server to close once this client disconnet"""
+        return self.send({'control': 'once'})
 
 
 class Sessions_client():
