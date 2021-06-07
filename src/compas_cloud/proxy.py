@@ -224,8 +224,6 @@ class Proxy():
         env = compas._os.prepare_environment()
 
         args = [self._python, '-m', 'compas_cloud.server', '--port', str(self.port)]
-        if args[0].find(" ") >= 0:
-            args[0] = "\"%s\"" % args[0]
 
         if self.background:
             print("Starting new cloud server in background at {}:{}".format(self.host, self.port))
@@ -233,10 +231,7 @@ class Proxy():
         else:
             print("Starting new cloud server with prompt console at {}:{}".format(self.host, self.port))
             args[0] = compas._os.select_python('python')
-            if args[0].find(" ") >= 0:
-                args[0] = "\"%s\"" % args[0]
-            args = " ".join(args)
-            os.system('start '+args)
+            self._process = Popen(args, env=env)
         # import sys
         # self._process = Popen(args, stdout=sys.stdout, stderr=sys.stderr, env=env)
 
@@ -250,15 +245,13 @@ class Proxy():
                 client = Client(self.host, self.port)
             except Exception as e:
 
-                # stop trying if the subprocess is not running anymore
-                if self.background:
-                    if self._process.poll() is not None:
-                        out, err = self._process.communicate()
-                        if out:
-                            print(out.decode())
-                        if err:
-                            raise RuntimeError(err.decode())
-                        raise RuntimeError('subprocess terminated, reason unknown')
+                if self._process.poll() is not None:
+                    out, err = self._process.communicate()
+                    if out:
+                        print(out.decode())
+                    if err:
+                        raise RuntimeError(err.decode())
+                    raise RuntimeError('subprocess terminated, reason unknown')
 
                 count -= 1
                 print(e)
