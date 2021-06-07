@@ -8,7 +8,6 @@ from compas.utilities import DataEncoder
 from compas.utilities import DataDecoder
 
 import compas
-import os
 
 import time
 import inspect
