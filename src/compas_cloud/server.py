@@ -213,7 +213,7 @@ if __name__ == '__main__':
     factory.protocol = CompasServerProtocol
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--port", default=9000)
+    parser.add_argument("--port", default=9009)
     args = parser.parse_args()
 
     ip = '127.0.0.1'
