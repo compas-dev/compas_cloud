@@ -224,6 +224,8 @@ class Proxy():
         env = compas._os.prepare_environment()
 
         args = [self._python, '-m', 'compas_cloud.server', '--port', str(self.port)]
+        if args[0].find(" ") >= 0:
+            args[0] = "\"%s\"" % args[0]
 
         if self.background:
             print("Starting new cloud server in background at {}:{}".format(self.host, self.port))
@@ -231,6 +233,8 @@ class Proxy():
         else:
             print("Starting new cloud server with prompt console at {}:{}".format(self.host, self.port))
             args[0] = compas._os.select_python('python')
+            if args[0].find(" ") >= 0:
+                args[0] = "\"%s\"" % args[0]
             args = " ".join(args)
             os.system('start '+args)
         # import sys
