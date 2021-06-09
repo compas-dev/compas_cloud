@@ -1,8 +1,6 @@
 from autobahn.asyncio.websocket import WebSocketServerProtocol
 
 import compas
-from compas.utilities import DataEncoder
-from compas.utilities import DataDecoder
 import importlib
 import json
 from compas_cloud import Sessions
@@ -10,6 +8,13 @@ import time
 import sys
 import traceback
 import pkg_resources
+
+try:
+    from compas.data import DataEncoder
+    from compas.data import DataDecoder
+except ImportError:
+    from compas.utilities import DataEncoder
+    from compas.utilities import DataDecoder
 
 
 class CompasServerProtocol(WebSocketServerProtocol):

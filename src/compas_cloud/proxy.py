@@ -4,8 +4,12 @@ from __future__ import print_function
 
 import json
 
-from compas.utilities import DataEncoder
-from compas.utilities import DataDecoder
+try:
+    from compas.data import DataEncoder
+    from compas.data import DataDecoder
+except ImportError:
+    from compas.utilities import DataEncoder
+    from compas.utilities import DataDecoder
 
 import compas
 
@@ -61,7 +65,7 @@ class Proxy():
     ----------
     port : int, optional
         The port number on the remote server.
-        Default is ``9000``.
+        Default is ``9009``.
 
     Notes
     -----
@@ -88,7 +92,7 @@ class Proxy():
 
     """
 
-    def __init__(self, host='127.0.0.1', port=9000, background=True, errorHandler=None, once=True):
+    def __init__(self, host='127.0.0.1', port=9009, background=True, errorHandler=None, once=True, start_server=True):
         """init function that starts a remote server then assigns corresponding client(websockets/.net) to the proxy"""
         self._python = compas._os.select_python(None)
         self.host = host
@@ -96,12 +100,16 @@ class Proxy():
         self.background = background
         self.client = self.try_reconnect()
         if not self.client:
-            self.client = self.start_server()
-            if once:
-                print("Server will shut down once program finish")
-                self.once()
+            if start_server:
+                self.client = self.start_server()
+                if once:
+                    print("Server will shut down once program finish")
+                    self.once()
+                else:
+                    print("Server will keep running after progrom finish")
             else:
-                print("Server will keep running after progrom finish")
+                raise ConnectionError("Failed to connect to {}:{}".format(host, port))
+
         self.callbacks = {}
         self.errorHandler = errorHandler
 
