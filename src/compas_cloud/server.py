@@ -193,13 +193,12 @@ class CompasServerProtocol(WebSocketServerProtocol):
     def version(self):
 
         working_set = pkg_resources.working_set
-        packages = set([p.project_name for p in working_set]) - set(['COMPAS'])
-        compas_pkgs = [p for p in packages if p.lower().startswith('compas')]
+        packages = {p.project_name: p.version for p in working_set if p.project_name.lower().startswith('compas')}
 
         return {
             "COMPAS": compas.__version__,
             "Python": sys.version,
-            "Extensions": compas_pkgs
+            "Packages": packages
         }
 
 
