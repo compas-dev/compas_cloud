@@ -9,6 +9,6 @@ from .proxy import Proxy # noqa F401
 if not compas.IPY:
     from .sessions import Sessions # noqa F401
 
-__version__ = '0.3.1'
+__version__ = '0.3.2rc0'
 
 __all__ = [name for name in dir() if not name.startswith('_')]
