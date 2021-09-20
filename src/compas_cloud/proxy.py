@@ -174,7 +174,7 @@ class Proxy():
         idict = {'package': package, 'cache': cache,
                  'args': args, 'kwargs': kwargs}
         result = self.send(idict)
-        if 'error' in result:
+        if isinstance(result, dict) and 'error' in result:
             raise ServerSideError("".join(result['error']))
         return result
 
