@@ -3,6 +3,8 @@ from autobahn.asyncio.websocket import WebSocketServerProtocol
 import compas
 import importlib
 import json
+from uuid import uuid4
+
 from compas_cloud import Sessions
 import time
 import sys
@@ -22,6 +24,7 @@ class CompasServerProtocol(WebSocketServerProtocol):
     cached = {}
     sessions = None
     server_type = "NORMAL"
+    WEBAPP_CONNECTIONS = {}
 
     def onConnect(self, request):
         """print client info on connection"""
@@ -30,6 +33,12 @@ class CompasServerProtocol(WebSocketServerProtocol):
     def onClose(self, wasClean, code, reason):
         """print reason on connection closes"""
         print("WebSocket connection closed: {}".format(reason))
+
+        for webapp_id, connection in list(CompasServerProtocol.WEBAPP_CONNECTIONS.items()):
+            if connection == self:
+                del CompasServerProtocol.WEBAPP_CONNECTIONS[webapp_id]
+                print('Webapp {} removed'.format(webapp_id))
+
         if self.server_type == "ONCE":
             raise KeyboardInterrupt
 
@@ -178,6 +187,9 @@ class CompasServerProtocol(WebSocketServerProtocol):
             if 'version' in data:
                 result = self.version()
 
+            if 'webapp' in data:
+                result = self.webapp(data)
+
         except BaseException as error:
 
             if isinstance(error, KeyboardInterrupt):
@@ -200,6 +212,39 @@ class CompasServerProtocol(WebSocketServerProtocol):
             "Python": sys.version,
             "Packages": packages
         }
+
+    def webapp(self, data):
+        if data['webapp']['type'] == 'register':
+            webapp_id = data['webapp']['webapp_id']
+            CompasServerProtocol.WEBAPP_CONNECTIONS[webapp_id] = self
+            print("Registered webapp with id: {}".format(webapp_id))
+            print(CompasServerProtocol.WEBAPP_CONNECTIONS)
+            return {'webapp_id': webapp_id}
+
+        elif data['webapp']['type'] == 'start':
+            webapp_id = data['webapp'].get('webapp_id', str(uuid4()))
+            import webbrowser
+            webbrowser.open('http://localhost:3000/?webapp_id={}'.format(webapp_id))
+            return {'webapp_id': webapp_id}
+
+        elif data['webapp']['type'] == 'check':
+            connection = CompasServerProtocol.WEBAPP_CONNECTIONS.get(data['webapp']['webapp_id'])
+            if connection:
+                return {'registered': True}
+            else:
+                return {'registered': False}
+
+        elif data['webapp']['type'] == 'draw':
+            connection = CompasServerProtocol.WEBAPP_CONNECTIONS.get(data['webapp']['webapp_id'])
+            if connection:
+                istring = json.dumps(data, cls=DataEncoder)
+                connection.sendMessage(istring.encode())
+                return {'something': True}
+            else:
+                raise ValueError("Webapp with id {} is not registered".format(data['webapp']['webapp_id']))
+
+        else:
+            raise ValueError("Unrecognised webapp command")
 
 
 if __name__ == '__main__':
