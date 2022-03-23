@@ -4,15 +4,15 @@ from __future__ import print_function
 
 import compas
 
-from .proxy import Proxy # noqa F401
-
-if not compas.IPY:
-    from .sessions import Sessions # noqa F401
+from .proxy import Proxy
 
 __version__ = '0.3.2'
 
-__all__ = [name for name in dir() if not name.startswith('_')]
+__all__ = ['Proxy']
 
-__all_plugins__ = [
-    'compas_cloud.rhino.install'
-]
+__all_plugins__ = ['compas_cloud.install']
+
+if not compas.IPY:
+    from .sessions import Sessions
+
+    __all__ += ['Sessions']
