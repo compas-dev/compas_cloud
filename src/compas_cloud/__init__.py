@@ -12,3 +12,7 @@ if not compas.IPY:
 __version__ = '0.3.2'
 
 __all__ = [name for name in dir() if not name.startswith('_')]
+
+__all_plugins__ = [
+    'compas_cloud.rhino.install'
+]
