@@ -1,1 +1,1 @@
-from .client import SpeckleClient
+from .speckle import Speckle
