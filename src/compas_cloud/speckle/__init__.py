@@ -1,1 +1,1 @@
-from .speckle import Speckle
+from .speckle import Speckle # noqa F401

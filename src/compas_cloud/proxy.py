@@ -299,7 +299,7 @@ class Proxy():
     def once(self):
         """Set the server to close once this client disconnet"""
         return self.send({'control': 'once'})
-    
+
     def speckle_connect(self, host="speckle.xyz", token=None):
         return self.send({"speckle": {"connect": {"host": host, "token": token}}})
 
@@ -308,6 +308,7 @@ class Proxy():
 
     def speckle_pull(self, stream_id):
         return self.send({"speckle": {"get": {"stream_id": stream_id}}})
+
 
 class Sessions_client():
 
