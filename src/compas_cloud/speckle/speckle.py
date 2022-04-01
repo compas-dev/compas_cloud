@@ -20,7 +20,8 @@ class Speckle():
         if 'get' in command:
             return self.get_item(command['get']['stream_id'])
         if 'update' in command:
-            return self.update_item(command['update']['item'], stream_id=command['update']['stream_id'])
+            return self.update_item(command['update']['item'], stream_id=command['update']['stream_id'],
+                                    name=command['update'].get('name'), message=command['update'].get('message'))
         else:
             return "Command not found"
 

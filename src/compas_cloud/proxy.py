@@ -303,8 +303,8 @@ class Proxy():
     def speckle_connect(self, host="speckle.xyz", token=None):
         return self.send({"speckle": {"connect": {"host": host, "token": token}}})
 
-    def speckle_push(self, stream_id, item):
-        return self.send({"speckle": {"update": {"stream_id": stream_id, "item": item}}})
+    def speckle_push(self, stream_id, item, name=None, message=None):
+        return self.send({"speckle": {"update": {"stream_id": stream_id, "item": item, "name": name, "message": message}}})
 
     def speckle_pull(self, stream_id):
         return self.send({"speckle": {"get": {"stream_id": stream_id}}})
