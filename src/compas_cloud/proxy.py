@@ -92,7 +92,7 @@ class Proxy():
 
     """
 
-    def __init__(self, host='127.0.0.1', port=9009, background=True, errorHandler=None, once=True, start_server=True):
+    def __init__(self, host='127.0.0.1', port=9009, background=True, errorHandler=None, once=True, start_server=True, speckle={}):
         """init function that starts a remote server then assigns corresponding client(websockets/.net) to the proxy"""
         self._python = compas._os.select_python(None)
         self.host = host
@@ -112,6 +112,9 @@ class Proxy():
 
         self.callbacks = {}
         self.errorHandler = errorHandler
+        if speckle:
+            result = self.speckle_connect(host=speckle['host'], token=speckle['token'])
+            print(result)
 
     def package(self, function, cache=False):
         raise RuntimeError("Proxy.package() has been deprecated, please use Proxy.function() instead.")
@@ -296,7 +299,15 @@ class Proxy():
     def once(self):
         """Set the server to close once this client disconnet"""
         return self.send({'control': 'once'})
+    
+    def speckle_connect(self, host="speckle.xyz", token=None):
+        return self.send({"speckle": {"connect": {"host": host, "token": token}}})
 
+    def speckle_push(self, stream_id, item):
+        return self.send({"speckle": {"update": {"stream_id": stream_id, "item": item}}})
+
+    def speckle_pull(self, stream_id):
+        return self.send({"speckle": {"get": {"stream_id": stream_id}}})
 
 class Sessions_client():
 

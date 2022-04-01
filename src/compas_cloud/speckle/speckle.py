@@ -1,8 +1,13 @@
-from specklepy.api.client import SpeckleClient
-from specklepy.api.credentials import get_account_from_token
-from specklepy.transports.server import ServerTransport
-from specklepy.api import operations
-from compas_cloud.speckle.data import Data as SpeckleData
+try:
+    import specklepy
+    from specklepy.api.client import SpeckleClient
+    from specklepy.api.credentials import get_account_from_token
+    from specklepy.transports.server import ServerTransport
+    from specklepy.api import operations
+    from compas_cloud.speckle.data import Data as SpeckleData
+except ImportError:
+    specklepy = None
+
 from compas.data import json_loads
 import json
 
@@ -20,20 +25,20 @@ class Speckle():
             return "Command not found"
 
     def connect(self, host="speckle.xyz", token=None):
+        if not specklepy:
+            raise ImportError("Specklepy is not installed")
         print("Connecting to {} with {}".format(host, token))
         self.client = SpeckleClient(host=host)
         account = get_account_from_token(token, host)
         self.client.authenticate_with_account(account)
-        return "Connected"
+        return "Connected to {} with {}".format(host, token)
 
     def update_item(self, item, stream_id=None, name=None, message=None):
-        print("CHECK!", item)
-        print("CHECK!", stream_id)
         # Create new stream if stream_id is None
         if not stream_id:
             stream_id = self.client.stream.create(name=name)
         transport = ServerTransport(client=self.client, stream_id=stream_id)
-        hash = operations.send(base=SpeckleData(item), transports=[transport])
+        hash = operations.send(base=SpeckleData(item, stream_id), transports=[transport])
         self.client.commit.create(
             stream_id=stream_id,
             object_id=hash,
@@ -49,9 +54,6 @@ class Speckle():
         data = received_base.data
         return json_loads(json.dumps(data))
 
-    # def watch_item(self, stream_id, callback):
-    #     item = self.get_item(stream_id)
-    #     callback(item)
 
 if __name__ == "__main__":
 
