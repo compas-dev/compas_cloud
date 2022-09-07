@@ -66,10 +66,14 @@ class CompasServerProtocol(WebSocketServerProtocol):
     def execute(self, data):
         """execute corresponding binded functions with received arguments"""
         package = data['package']
-        names = package.split('.')
-        name = '.'.join(names[:-1])
-        module = importlib.import_module(name)
-        function = getattr(module, names[-1])
+
+        if isinstance(package, dict):
+            function = self.cached[package['cached_func']]
+        else:
+            names = package.split('.')
+            name = '.'.join(names[:-1])
+            module = importlib.import_module(name)
+            function = getattr(module, names[-1])
 
         start = time.time()
         print('running:', package)

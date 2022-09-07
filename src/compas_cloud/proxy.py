@@ -119,20 +119,23 @@ class Proxy():
     def package(self, function, cache=False):
         raise RuntimeError("Proxy.package() has been deprecated, please use Proxy.function() instead.")
 
-    def function(self, function, cache=False):
+    def function(self, package, cache=False):
         """returns wrapper of function that will be executed on server side"""
+
+        if callable(package):
+            package = self.cache(package)
 
         if self.errorHandler:
             @self.errorHandler
             @retry_if_exception(Exception, 5, wait=0.5)
             def run_function(*args, **kwargs):
-                return self.run(function, cache, *args, **kwargs)
+                return self.run(package, cache, *args, **kwargs)
 
             return run_function
         else:
             @retry_if_exception(Exception, 5, wait=0.5)
             def run_function(*args, **kwargs):
-                return self.run(function, cache, *args, **kwargs)
+                return self.run(package, cache, *args, **kwargs)
 
             return run_function
 
