@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+* Unlocked version for `AutoBahn` and `Websokets` in requirements.
+* Resumed build test for python 3.10
+
 ### Removed
 
 
