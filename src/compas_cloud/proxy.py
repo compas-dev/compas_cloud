@@ -18,6 +18,7 @@ import inspect
 
 from subprocess import Popen
 from functools import wraps
+from .cache import CacheReference
 
 if compas.IPY:
     from .client_net import Client_Net as Client
@@ -147,6 +148,7 @@ class Proxy():
 
         def listen_and_parse():
             result = self.client.receive()
+            print(result)
             return json.loads(result, cls=DataDecoder)
 
         result = listen_and_parse()
@@ -189,9 +191,9 @@ class Proxy():
         idict = {'version': True}
         return self.send(idict)
 
-    def get(self, cached_object):
+    def get(self, cached_object: CacheReference):
         """get content of a cached object stored remotely"""
-        idict = {'get': cached_object['cached']}
+        idict = {'get': cached_object.cache_id}
         return self.send(idict)
 
     def cache(self, data):

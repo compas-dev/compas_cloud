@@ -8,6 +8,7 @@ import time
 import sys
 import traceback
 import pkg_resources
+from .cache import CacheReference
 
 try:
     from compas.data import DataEncoder
@@ -97,7 +98,7 @@ class CompasServerProtocol(WebSocketServerProtocol):
         to_cache = data['cache']
         _id = id(to_cache)
         self.cached[_id] = to_cache
-        return {'cached': _id}
+        return CacheReference(_id)
 
     def cache_func(self, data):
         """cache a excutable function"""
