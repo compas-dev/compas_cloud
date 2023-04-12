@@ -8,7 +8,6 @@ import time
 import sys
 import traceback
 import pkg_resources
-from compas_cloud.speckle import Speckle
 
 try:
     from compas.data import DataEncoder
@@ -23,7 +22,6 @@ class CompasServerProtocol(WebSocketServerProtocol):
     cached = {}
     sessions = None
     server_type = "NORMAL"
-    speckle = Speckle()
 
     def onConnect(self, request):
         """print client info on connection"""
@@ -183,9 +181,6 @@ class CompasServerProtocol(WebSocketServerProtocol):
 
             if 'version' in data:
                 result = self.version()
-
-            if 'speckle' in data:
-                result = self.speckle.process_command(data['speckle'])
 
         except BaseException as error:
 
