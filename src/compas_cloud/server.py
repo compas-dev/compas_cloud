@@ -8,6 +8,7 @@ import time
 import sys
 import traceback
 import pkg_resources
+from .cache import CacheReference
 
 try:
     from compas.data import DataEncoder
@@ -47,14 +48,13 @@ class CompasServerProtocol(WebSocketServerProtocol):
     def load_cached(self, data):
         """detect and load cached data or callback functions in arguments"""
         for i, a in enumerate(data['args']):
-            if isinstance(a, dict):
-                if 'cached' in a:
-                    data['args'][i] = self.cached[a['cached']]
+            if isinstance(a, CacheReference):
+                data['args'][i] = self.cached[a.cache_id]
 
         for key in data['kwargs']:
-            if isinstance(data['kwargs'][key], dict):
-                if 'cached' in data['kwargs'][key]:
-                    data['kwargs'][key] = self.cached[data['kwargs'][key]['cached']]
+            if isinstance(data['kwargs'][key], CacheReference):
+                data['kwargs'][key] = self.cached[data['kwargs'][key].cache_id]
+            elif isinstance(data['kwargs'][key], dict):
                 if 'callback' in data['kwargs'][key]:
                     _id = data['kwargs'][key]['callback']['id']
                     self.cached[_id] = lambda *args, **kwargs: self.callback(
@@ -66,7 +66,13 @@ class CompasServerProtocol(WebSocketServerProtocol):
         package = data['package']
 
         if isinstance(package, dict):
-            function = self.cached[package['cached_func']]
+            if 'cached_func' in package:
+                function = self.cached[package['cached_func']]
+            elif 'cache_reference' in package:
+                cached_object = self.cached[package['cache_reference'].cache_id]
+                function = getattr(cached_object, package['function_name'])
+            else:
+                raise Exception('unknown package', package)
         else:
             names = package.split('.')
             name = '.'.join(names[:-1])
@@ -79,8 +85,9 @@ class CompasServerProtocol(WebSocketServerProtocol):
 
         if data['cache']:
             to_cache = function(*data['args'], **data['kwargs'])
-            self.cached[id(to_cache)] = to_cache
-            result = {'cached': id(to_cache)}
+            cache_id = data.get('cache_id', id(to_cache))
+            self.cached[cache_id] = to_cache
+            result = CacheReference(cache_id)
         else:
             result = function(*data['args'], **data['kwargs'])
         t = time.time()-start
@@ -95,16 +102,17 @@ class CompasServerProtocol(WebSocketServerProtocol):
     def cache(self, data):
         """cache received data and return its reference object"""
         to_cache = data['cache']
-        _id = id(to_cache)
-        self.cached[_id] = to_cache
-        return {'cached': _id}
+        cache_id = data.get('cache_id', id(to_cache))
+        self.cached[cache_id] = to_cache
+        return CacheReference(cache_id)
 
     def cache_func(self, data):
         """cache a excutable function"""
-        name = data['cache_func']['name']
+        function_name = data['cache_func']['name']
+        cache_id = data.get('cache_id', function_name)
         exec(data['cache_func']['source'])
-        exec('self.cached[name] = {}'.format(name))
-        return {'cached_func': name}
+        exec('self.cached[cache_id] = {}'.format(function_name))
+        return {'cached_func': cache_id}
 
     def sessions_alive(self):
         return isinstance(self.sessions, Sessions)
@@ -157,9 +165,9 @@ class CompasServerProtocol(WebSocketServerProtocol):
 
     def process(self, data):
         """process received data according to its content"""
-        data = json.loads(data, cls=DataDecoder)
-
         try:
+
+            data = json.loads(data, cls=DataDecoder)
 
             if 'cache' in data:
                 result = self.cache(data)

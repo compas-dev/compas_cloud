@@ -18,6 +18,7 @@ import inspect
 
 from subprocess import Popen
 from functools import wraps
+from .cache import CacheReference
 
 if compas.IPY:
     from .client_net import Client_Net as Client
@@ -135,6 +136,11 @@ class Proxy():
                 return self.run(package, cache, *args, **kwargs)
 
             return run_function
+    
+    def call(self, cache_reference, function_name, *args, cache=False, **kwargs):
+        """call a function on a cached object"""
+        package = {'cache_reference': cache_reference, 'function_name': function_name}
+        return self.run(package, cache, *args, **kwargs)
 
     def send(self, data):
         """encode given data before sending to remote server then parse returned result"""
@@ -147,7 +153,10 @@ class Proxy():
 
         def listen_and_parse():
             result = self.client.receive()
-            return json.loads(result, cls=DataDecoder)
+            result = json.loads(result, cls=DataDecoder)
+            if isinstance(result, CacheReference):
+                result.set_proxy(self)
+            return result
 
         result = listen_and_parse()
         # keep receiving response until a non-callback result is returned
@@ -189,20 +198,20 @@ class Proxy():
         idict = {'version': True}
         return self.send(idict)
 
-    def get(self, cached_object):
+    def get(self, cached_object: CacheReference):
         """get content of a cached object stored remotely"""
-        idict = {'get': cached_object['cached']}
+        idict = {'get': cached_object.cache_id}
         return self.send(idict)
 
-    def cache(self, data):
+    def cache(self, data, cached_id=None):
         """cache data or function to remote server and return a reference of it"""
         if callable(data):
             idict = {'cache_func': {
                 'name': data.__name__,
                 'source': inspect.getsource(data)
-            }}
+            }, 'cached_id': cached_id}
         else:
-            idict = {'cache': data}
+            idict = {'cache': data, 'cached_id': cached_id}
         return self.send(idict)
 
     def parse_callbacks(self, args, kwargs):
