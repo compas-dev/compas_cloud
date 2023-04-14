@@ -11,7 +11,7 @@ def move_point(point):
 
 # save the custom function to cloud
 # cache=True means the function will return a cache object instead of the actual data
-move_point_cloud = p.function(move_point, cache=True)
+move_point_cloud = p.function(move_point, cache_result=True)
 
 # Cache the input object to cloud
 point = Point(0, 0, 0)

@@ -18,7 +18,9 @@ import inspect
 
 from subprocess import Popen
 from functools import wraps
-from .cache import CacheReference
+from .cache import Reference
+from .cache import FunctionReference
+from .payload import Payload
 
 if compas.IPY:
     from .client_net import Client_Net as Client
@@ -114,35 +116,41 @@ class Proxy():
         self.callbacks = {}
         self.errorHandler = errorHandler
 
-    def package(self, function, cache=False):
-        raise RuntimeError("Proxy.package() has been deprecated, please use Proxy.function() instead.")
+        # Hook up the reference class with this proxy.
+        Reference.proxy = self
 
-    def function(self, package, cache=False):
+    def function(self, func, cache_result=False):
         """returns wrapper of function that will be executed on server side"""
 
-        if callable(package):
-            package = self.cache(package)
+        # TODO: add back retry.
+        if callable(func):
+            return self.send_and_listen(Payload("function", {'name': func.__name__,'source': inspect.getsource(func), "cache_result": cache_result}))
 
-        if self.errorHandler:
-            @self.errorHandler
-            @retry_if_exception(Exception, 5, wait=0.5)
-            def run_function(*args, **kwargs):
-                return self.run(package, cache, *args, **kwargs)
-
-            return run_function
+        elif isinstance(func, str):
+            return self.send_and_listen(Payload("function", {"package": func, "cache_result": cache_result}))
+        
         else:
-            @retry_if_exception(Exception, 5, wait=0.5)
-            def run_function(*args, **kwargs):
-                return self.run(package, cache, *args, **kwargs)
+            raise TypeError("func should be a function or a package string")
 
-            return run_function
+        # if self.errorHandler:
+        #     @self.errorHandler
+        #     @retry_if_exception(Exception, 5, wait=0.5)
+        #     def run_function(*args, **kwargs):
+        #         return self.run(package, cache, *args, **kwargs)
+
+        #     return run_function
+        # else:
+        #     @retry_if_exception(Exception, 5, wait=0.5)
+        #     def run_function(*args, **kwargs):
+        #         return self.run(package, cache, *args, **kwargs)
+
+        #     return run_function
     
-    def call(self, cache_reference, function_name, *args, cache=False, **kwargs):
+    def call(self, function, *args, **kwargs):
         """call a function on a cached object"""
-        package = {'cache_reference': cache_reference, 'function_name': function_name}
-        return self.run(package, cache, *args, **kwargs)
+        return self.send_and_listen(Payload("call", {"function": function, "args": args, "kwargs": kwargs, "cache_result": function.cache_result}))
 
-    def send(self, data):
+    def send_and_listen(self, data):
         """encode given data before sending to remote server then parse returned result"""
         if not self.client:
             print("There is no connected client, try to restart proxy")
@@ -154,8 +162,9 @@ class Proxy():
         def listen_and_parse():
             result = self.client.receive()
             result = json.loads(result, cls=DataDecoder)
-            if isinstance(result, CacheReference):
+            if isinstance(result, Reference):
                 result.set_proxy(self)
+                raise TypeError("TEMP")
             return result
 
         result = listen_and_parse()
@@ -174,7 +183,12 @@ class Proxy():
             else:
                 break
 
-        return result
+        if isinstance(result, Payload):
+            if result.type == 'error':
+                raise ServerSideError("".join(result.content))
+            return result.content
+        else:
+            raise ValueError("Unexpected payload: {}".format(result))
 
     def send_only(self, data):
         istring = json.dumps(data, cls=DataEncoder)
@@ -185,7 +199,7 @@ class Proxy():
         args, kwargs = self.parse_callbacks(args, kwargs)
         idict = {'package': package, 'cache': cache,
                  'args': args, 'kwargs': kwargs}
-        result = self.send(idict)
+        result = self.send_and_listen(idict)
         if isinstance(result, dict) and 'error' in result:
             raise ServerSideError("".join(result['error']))
         return result
@@ -193,26 +207,23 @@ class Proxy():
     def Sessions(self, *args, **kwargs):
         return Sessions_client(self, *args, **kwargs)
 
-    def version(self):
-        """get version info of compas cloud server side packages"""
-        idict = {'version': True}
-        return self.send(idict)
-
-    def get(self, cached_object: CacheReference):
+    def get(self, cached_object: Reference):
         """get content of a cached object stored remotely"""
-        idict = {'get': cached_object.cache_id}
-        return self.send(idict)
+        return self.send_and_listen(Payload("get", cached_object))
 
     def cache(self, data, cached_id=None):
         """cache data or function to remote server and return a reference of it"""
-        if callable(data):
-            idict = {'cache_func': {
-                'name': data.__name__,
-                'source': inspect.getsource(data)
-            }, 'cached_id': cached_id}
-        else:
-            idict = {'cache': data, 'cached_id': cached_id}
-        return self.send(idict)
+        # if callable(data):
+        #     idict = {'cache_func': {
+        #         'name': data.__name__,
+        #         'source': inspect.getsource(data)
+        #     }, 'cached_id': cached_id}
+        # else:
+        #     idict = {'cache': data, 'cached_id': cached_id}
+        # return self.send(idict)
+
+        # TODO: deal with function
+        return self.send_and_listen(Payload("cache", {"data": data, "cached_id": cached_id}))
 
     def parse_callbacks(self, args, kwargs):
         """replace a callback functions with its cached reference then sending it to server"""
@@ -295,7 +306,7 @@ class Proxy():
     def shutdown(self):
         """shut down currently connected server"""
         if self.client:
-            if self.send_only({'control': 'shutdown'}):
+            if self.send_only(Payload("control", "shutdown")):
                 self.client = None
                 print("server will shutdown and proxy client disconnected.")
         else:
@@ -303,12 +314,15 @@ class Proxy():
 
     def check(self):
         """check if server connection is good"""
-        return self.send({'control': 'check'})
+        return self.send_and_listen(Payload("control", "check"))
 
     def once(self):
         """Set the server to close once this client disconnet"""
-        return self.send({'control': 'once'})
+        return self.send_and_listen(Payload("control", "once"))
 
+    def version(self):
+        """get version info of compas cloud server side packages"""
+        return self.send_and_listen(Payload("control", "version"))
 
 class Sessions_client():
 

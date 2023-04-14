@@ -1,20 +1,16 @@
 from compas.data import Data
 
 
-class CacheReference(Data):
+class Reference(Data):
+
+    proxy = None
+
     def __init__(self, cache_id=None):
-        super(CacheReference, self).__init__()
+        super(Reference, self).__init__()
         self.cache_id = cache_id
-        self.proxy = None
 
-    def set_proxy(self, proxy):
-        self.proxy = proxy
-
-    def get(self):
-        pass
-
-    def call(self, function_name, *args, cache=False, **kwargs):
-        return self.proxy.call(self, function_name,*args, cache=cache, **kwargs)
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(cache_id={self.cache_id})"
 
     @property
     def data(self):
@@ -24,11 +20,43 @@ class CacheReference(Data):
     def data(self, data):
         self.cache_id = data["cache_id"]
 
+
+class FunctionReference(Reference):
+    def __init__(self, cache_id=None, function_name=None, cache_result=False):
+        super(FunctionReference, self).__init__(cache_id=cache_id)
+        self.function_name = function_name
+        self.cache_result = cache_result
+
+    def __repr__(self) -> str:
+        return f"FunctionReference(cache_id={self.cache_id}, function_name={self.function_name})"
+
+    @property
+    def data(self):
+        return {
+            "cache_id": self.cache_id,
+            "function_name": self.function_name,
+            "cache_result": self.cache_result,
+        }
+
+    @data.setter
+    def data(self, data):
+        self.cache_id = data["cache_id"]
+        self.function_name = data["function_name"]
+        self.cache_result = data["cache_result"]
+
+    def __call__(self, *args, **kwargs):
+        return self.proxy.call(self, *args, **kwargs)
+
+
+class ObjectReference(Reference):
+    pass
+
+
 class TestClass(Data):
     def __init__(self, x=0):
         super(TestClass, self).__init__()
         self.x = x
-    
+
     def __repr__(self) -> str:
         return f"TestClass(x={self.x})"
 

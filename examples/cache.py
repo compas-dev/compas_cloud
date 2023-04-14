@@ -19,7 +19,7 @@ print(result) # will print: [[100.0, 0.0 ,0.0], [101.0, 0.0, 0.0]]
 
 # CACHING RETURNED DATA
 
-transform_points_numpy = proxy.function('compas.geometry.transform_points_numpy', cache=True)
+transform_points_numpy = proxy.function('compas.geometry.transform_points_numpy', cache_result=True)
 # this function will now return a cache object instead of the actual data
 
 pts = [[0,0,0], [1,0,0]]

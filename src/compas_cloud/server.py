@@ -8,7 +8,9 @@ import time
 import sys
 import traceback
 import pkg_resources
-from .cache import CacheReference
+from .cache import Reference
+from .cache import FunctionReference
+from .payload import Payload
 
 try:
     from compas.data import DataEncoder
@@ -45,80 +47,47 @@ class CompasServerProtocol(WebSocketServerProtocol):
         istring = json.dumps(data, cls=DataEncoder)
         self.sendMessage(istring.encode())
 
-    def load_cached(self, data):
-        """detect and load cached data or callback functions in arguments"""
-        for i, a in enumerate(data['args']):
-            if isinstance(a, CacheReference):
-                data['args'][i] = self.cached[a.cache_id]
+    # def load_cached(self, data):
+    #     """detect and load cached data or callback functions in arguments"""
+    #     for i, a in enumerate(data['args']):
+    #         if isinstance(a, Reference):
+    #             data['args'][i] = self.cached[a.cache_id]
 
-        for key in data['kwargs']:
-            if isinstance(data['kwargs'][key], CacheReference):
-                data['kwargs'][key] = self.cached[data['kwargs'][key].cache_id]
-            elif isinstance(data['kwargs'][key], dict):
-                if 'callback' in data['kwargs'][key]:
-                    _id = data['kwargs'][key]['callback']['id']
-                    self.cached[_id] = lambda *args, **kwargs: self.callback(
-                        _id, *args, **kwargs)
-                    data['kwargs'][key] = self.cached[_id]
+    #     for key in data['kwargs']:
+    #         if isinstance(data['kwargs'][key], Reference):
+    #             data['kwargs'][key] = self.cached[data['kwargs'][key].cache_id]
+    #         elif isinstance(data['kwargs'][key], dict):
+    #             if 'callback' in data['kwargs'][key]:
+    #                 _id = data['kwargs'][key]['callback']['id']
+    #                 self.cached[_id] = lambda *args, **kwargs: self.callback(
+    #                     _id, *args, **kwargs)
+    #                 data['kwargs'][key] = self.cached[_id]
 
-    def execute(self, data):
-        """execute corresponding binded functions with received arguments"""
-        package = data['package']
 
-        if isinstance(package, dict):
-            if 'cached_func' in package:
-                function = self.cached[package['cached_func']]
-            elif 'cache_reference' in package:
-                cached_object = self.cached[package['cache_reference'].cache_id]
-                function = getattr(cached_object, package['function_name'])
-            else:
-                raise Exception('unknown package', package)
-        else:
-            names = package.split('.')
-            name = '.'.join(names[:-1])
-            module = importlib.import_module(name)
-            function = getattr(module, names[-1])
-
-        start = time.time()
-        print('running:', package)
-        self.load_cached(data)
-
-        if data['cache']:
-            to_cache = function(*data['args'], **data['kwargs'])
-            cache_id = data.get('cache_id', id(to_cache))
-            self.cached[cache_id] = to_cache
-            result = CacheReference(cache_id)
-        else:
-            result = function(*data['args'], **data['kwargs'])
-        t = time.time()-start
-        print('finished in: {}s'.format(t))
-        return result
-
-    def get(self, data):
+    def get(self, reference):
         """get cached data from its id"""
-        _id = data['get']
-        return self.cached[_id]
+        return reference
 
-    def cache(self, data):
+    def get_attribute(self, data):
+        raise NotImplementedError
+    
+    def set_attribute(self, data):
+        raise NotImplementedError
+
+    def set(self, data):
+        raise NotImplementedError
+
+    def cache(self, content):
         """cache received data and return its reference object"""
-        to_cache = data['cache']
-        cache_id = data.get('cache_id', id(to_cache))
-        self.cached[cache_id] = to_cache
-        return CacheReference(cache_id)
-
-    def cache_func(self, data):
-        """cache a excutable function"""
-        function_name = data['cache_func']['name']
-        cache_id = data.get('cache_id', function_name)
-        exec(data['cache_func']['source'])
-        exec('self.cached[cache_id] = {}'.format(function_name))
-        return {'cached_func': cache_id}
+        data = content["data"]
+        cache_id = content.get('cache_id', id(data))
+        self.cached[cache_id] = data
+        return Reference(cache_id)
 
     def sessions_alive(self):
         return isinstance(self.sessions, Sessions)
 
-    def control(self, data):
-        command = data['control']
+    def control(self, command):
         if command == 'shutdown':
             raise KeyboardInterrupt
         if command == 'check':
@@ -128,6 +97,8 @@ class CompasServerProtocol(WebSocketServerProtocol):
             self.server_type = "ONCE"
             print('Setting Server type to ONCE, server will be closed once this client disconnect.')
             return {'status': "server type set as ONCE"}
+        if command == 'version':
+            return self.version()
 
         raise ValueError("Unrecognised control command")
 
@@ -163,32 +134,99 @@ class CompasServerProtocol(WebSocketServerProtocol):
                 self.sessions.terminate()
                 self.sessions = None
 
+    def call(self, content):
+        """execute corresponding binded functions with received arguments"""
+        function = content["function"]
+        cache_result = content["cache_result"]
+        args = content["args"]
+        kwargs = content["kwargs"]
+
+        # TODO: add verbose option
+        start = time.time()
+        print('running:', function)
+        result = function(*args, **kwargs)
+
+        if cache_result:
+            cache_id = id(result)
+            self.cached[cache_id] = result
+            result = Reference(cache_id)
+
+        t = time.time()-start
+        print('finished in: {}s'.format(t))
+        return result
+
+    def function(self, content):
+        """execute corresponding binded functions with received arguments"""
+        if "package" in content:
+            return self.function_from_package(content)
+        elif "source" in content:
+            return self.function_from_source(content)
+        else:
+            raise ValueError(f"Unrecognised function content:{content}")
+
+    def function_from_package(self, content):
+        """cache a excutable function"""
+        package = content["package"]
+        cache_result = content["cache_result"]
+        names = package.split('.')
+        name = '.'.join(names[:-1])
+        module = importlib.import_module(name)
+        function = getattr(module, names[-1])
+        cache_id = id(function)
+        self.cached[cache_id] = function
+        return FunctionReference(cache_id, function_name=package, cache_result=cache_result)
+
+    def function_from_source(self, content):
+        """cache a excutable function"""
+        function_name = content['name']
+        cache_result = content["cache_result"]
+        cache_id = None
+        exec(content['source'])
+        exec('cache_id = id(function_name)')
+        exec('self.cached[cache_id] = {}'.format(function_name))
+        return  FunctionReference(cache_id, function_name=function_name, cache_result=cache_result)
+
     def process(self, data):
-        """process received data according to its content"""
+        """process received data according to its payload content"""
         try:
+            payload = json.loads(data, cls=ReferenceDeCoder)
+            
+            if not isinstance(payload, Payload):
+                raise TypeError("Not a Payload object")
 
-            data = json.loads(data, cls=DataDecoder)
+            if payload.type == 'control':
+                result = self.control(payload.content)
+            elif payload.type == 'function':
+                result = self.function(payload.content)
+            elif payload.type == 'cache':
+                result = self.cache(payload.content)
+            elif payload.type == 'get':
+                result = self.get(payload.content)
+            elif payload.type == 'call':
+                result = self.call(payload.content)
+            else:
+                raise ValueError("Unrecognised payload: {}".format(payload))
 
-            if 'cache' in data:
-                result = self.cache(data)
+            # if 'cache' in data:
+            #     result = self.cache(data)
 
-            if 'cache_func' in data:
-                result = self.cache_func(data)
+            # if 'cache_func' in data:
+            #     result = self.cache_func(data)
 
-            if 'package' in data:
-                result = self.execute(data)
+            # if 'package' in data:
+            #     result = self.execute(data)
 
-            if 'get' in data:
-                result = self.get(data)
+            # if 'get' in data:
+            #     result = self.get(data)
 
-            if 'sessions' in data:
-                result = self.control_sessions(data)
+            # if 'sessions' in data:
+            #     result = self.control_sessions(data)
 
-            if 'control' in data:
-                result = self.control(data)
+            # if 'control' in data:
+            #     result = self.control(data)
 
-            if 'version' in data:
-                result = self.version()
+            # if 'version' in data:
+            #     result = self.version()
 
         except BaseException as error:
 
@@ -196,11 +234,12 @@ class CompasServerProtocol(WebSocketServerProtocol):
                 raise KeyboardInterrupt
 
             exc_type, exc_value, exc_tb = sys.exc_info()
-            result = {'error': traceback.format_exception(exc_type, exc_value, exc_tb)}
-            print("".join(result['error']))
+            error_payload = Payload('error', traceback.format_exception(exc_type, exc_value, exc_tb))
+            print("".join(error_payload.content))
+            return json.dumps(error_payload, cls=DataEncoder)
 
-        istring = json.dumps(result, cls=DataEncoder)
-        return istring
+        result_payload = Payload('result', result)
+        return json.dumps(result_payload, cls=DataEncoder)
 
     def version(self):
 
@@ -213,6 +252,13 @@ class CompasServerProtocol(WebSocketServerProtocol):
             "Packages": packages
         }
 
+class ReferenceDeCoder(DataDecoder):
+    def object_hook(self, o):
+        o = super(ReferenceDeCoder, self).object_hook(o)
+        if isinstance(o, Reference):
+            return CompasServerProtocol.cached[o.cache_id]
+        else:
+            return o
 
 if __name__ == '__main__':
 
