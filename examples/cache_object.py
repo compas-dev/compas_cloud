@@ -1,34 +1,20 @@
 from compas_cloud import Proxy
-from compas.data import Data
-
-class MyClass(Data):
-    def __init__(self, x = 0):
-        super(MyClass, self).__init__()
-        self.x = x
-    
-    def increment_x(self):
-        self.x += 1
-
-    @property
-    def data(self):
-        return {'x': self.x}
-
-    @data.setter
-    def data(self, data):
-        self.x = data['x']
-
-    def __str__(self):
-        return "MyClass(x={})".format(self.x)
+from compas_cloud.cache import TestClass
 
 
 p = Proxy()
 
-my_object = MyClass(1)
+my_object = TestClass(1)
 print(my_object)
 
 my_object.increment_x()
 print(my_object)
 
+cached = p.cache(my_object)
+print(cached)
 
-my_object_ref = p.cache(my_object)
-print(my_object_ref)
+for i in range(10):
+    cached.call('increment_x')
+
+my_object = p.get(cached)
+print(my_object)
