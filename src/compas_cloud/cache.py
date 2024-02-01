@@ -13,12 +13,8 @@ class Reference(Data):
         return f"{self.__class__.__name__}(cache_id={self.cache_id})"
 
     @property
-    def data(self):
+    def __data__(self):
         return {"cache_id": self.cache_id}
-
-    @data.setter
-    def data(self, data):
-        self.cache_id = data["cache_id"]
 
 
 class FunctionReference(Reference):
@@ -31,18 +27,12 @@ class FunctionReference(Reference):
         return f"FunctionReference(cache_id={self.cache_id}, function_name={self.function_name})"
 
     @property
-    def data(self):
+    def __data__(self):
         return {
             "cache_id": self.cache_id,
             "function_name": self.function_name,
             "cache_result": self.cache_result,
         }
-
-    @data.setter
-    def data(self, data):
-        self.cache_id = data["cache_id"]
-        self.function_name = data["function_name"]
-        self.cache_result = data["cache_result"]
 
     def __call__(self, *args, **kwargs):
         return self.proxy.call(self, *args, **kwargs)
@@ -65,9 +55,5 @@ class TestClass(Data):
         print("x is now", self.x)
 
     @property
-    def data(self):
+    def __data__(self):
         return {"x": self.x}
-
-    @data.setter
-    def data(self, data):
-        self.x = data["x"]

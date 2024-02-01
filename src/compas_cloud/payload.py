@@ -11,10 +11,5 @@ class Payload(Data):
         return f"Payload(type={self.type}, content={self.content})"
 
     @property
-    def data(self):
+    def __data__(self):
         return {"type": self.type, "content": self.content}
-
-    @data.setter
-    def data(self, data):
-        self.type = data["type"]
-        self.content = data["content"]
